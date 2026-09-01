@@ -15,9 +15,11 @@ GitHub Actions, shipped as a flashable AnyKernel3 zip, zero paid tools.
 
 **Latest release: [v1.0.0](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.0.0)**
 
-**Community:** [XDA support thread](https://xdaforums.com/t/kernel-whyred-nethunter-kernel-for-los-18-1-hid-gadget-rtl8812au-injection-ci-built.4800231/) | [Telegram channel t.me/whyrednethunter](https://t.me/whyrednethunter) (release announcements, flash help)
+**Community:** [XDA support thread](https://xdaforums.com/t/kernel-whyred-nethunter-kernel-for-los-18-1-hid-gadget-rtl8812au-injection-ci-built.4800231/) | [Telegram channel t.me/whyrednethunter](https://t.me/whyrednethunter) (release announcements, flash help) | [landing page](https://notatallnic189.github.io/whyred-nethunter-kernel/)
 
 Base: `LineageOS/android_kernel_xiaomi_sdm660` @ `lineage-18.1` (Linux 4.4.302)
+
+Actively maintained as of September 2026. Project landing page: <https://notatallnic189.github.io/whyred-nethunter-kernel/>
 
 ## What's in the kernel (vs stock LOS defconfig)
 
@@ -30,7 +32,7 @@ Base: `LineageOS/android_kernel_xiaomi_sdm660` @ `lineage-18.1` (Linux 4.4.302)
 | `CONFIG_MODULES=y` + `CONFIG_MODULE_UNLOAD=y` | out-of-tree module support |
 | `CONFIG_LOCALVERSION="-Nethunter-whyred"` | identifiable via `uname -a` |
 
-## External adapter module
+## External WiFi adapter: rtl8812au monitor mode + injection
 
 `88XXau.ko` (aircrack-ng rtl8812au v5.6.4.2, signed with the kernel build key,
 vermagic locked to this kernel) is bundled in the AnyKernel3 zip and installed
@@ -50,7 +52,7 @@ continues the idea with a modern, reproducible pipeline:
 | LOS base | old trees | current `lineage-18.1` head, rebaseable |
 | Rollback | manual | AnyKernel3, just restore `boot` from your nandroid |
 
-## Flash
+## Flash it (LineageOS 18.1)
 
 1. Boot TWRP, take a full nandroid backup (boot + system + data).
 2. Flash the zip. It writes the kernel into `boot` and installs the module
