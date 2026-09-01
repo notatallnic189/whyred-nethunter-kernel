@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: NetHunter app and chroot questions
+    url: https://www.kali.org/get-kali/#kali-mobile
+    about: Use the official Generic ARM64 installer and its docs for NetHunter userland issues. This repo is the kernel only.
+  - name: whyred community on Telegram
+    url: https://t.me/whyredupdates
+    about: Active whyred ROM and device chat.
+  - name: rtl8812au driver upstream
+    url: https://github.com/aircrack-ng/rtl8812au/issues
+    about: Driver internals, adapter hardware quirks, injection bugs that reproduce on other kernels too.
