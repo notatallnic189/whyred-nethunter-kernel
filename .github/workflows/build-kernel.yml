@@ -1,0 +1,48 @@
+name: Build whyred NetHunter kernel
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'patches/**'
+      - 'build.sh'
+      - 'packaging/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install host build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc flex bison libssl-dev zip
+
+      - name: Build kernel + module + AnyKernel3 zip
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Upload flashable zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: whyred-nethunter-kernel-zip
+          path: |
+            whyred-nethunter-kernel-*.zip
+            whyred-nethunter-kernel-*.zip.sha256
+          if-no-files-found: error
+
+      - name: Release on tag
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            whyred-nethunter-kernel-*.zip
+            whyred-nethunter-kernel-*.zip.sha256

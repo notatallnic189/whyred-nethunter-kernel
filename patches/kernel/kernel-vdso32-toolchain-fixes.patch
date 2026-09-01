@@ -1,0 +1,73 @@
+diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+index 4df2b48f..8eacd49f 100644
+--- a/arch/arm64/Makefile
++++ b/arch/arm64/Makefile
+@@ -179,7 +179,12 @@ archclean:
+ # Therefore we need to generate the header after prepare0 has been made, hence
+ # this hack.
+ prepare: vdso_prepare
++ifneq ($(KBUILD_EXTMOD),)
++# External module builds: vDSO offsets are already generated; prepare0 does not exist in module context
++vdso_prepare:
++else
+ vdso_prepare: prepare0
++endif
+ 	$(Q)$(MAKE) $(build)=arch/arm64/kernel/vdso include/generated/vdso-offsets.h
+ 	$(if $(CONFIG_VDSO32),$(Q)$(MAKE) $(build)=arch/arm64/kernel/vdso32 \
+ 					  include/generated/vdso32-offsets.h)
+diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
+index 807d08e2..fcabae8a 100644
+--- a/arch/arm64/kernel/vdso32/Makefile
++++ b/arch/arm64/kernel/vdso32/Makefile
+@@ -5,11 +5,10 @@
+ # A mix between the arm64 and arm vDSO Makefiles.
+ 
+ ifeq ($(cc-name),clang)
+-  CC_ARM32 := $(CC) $(CLANG_TARGET_ARM32) -no-integrated-as
+-  GCC_ARM32_TC := $(realpath $(dir $(shell which $(CROSS_COMPILE_ARM32)ld))/..)
+-ifneq ($(GCC_ARM32_TC),)
+-  CC_ARM32 += --gcc-toolchain=$(GCC_ARM32_TC)
+-endif
++  # NetHunter whyred fix: route vDSO32 through the dedicated ARM32 GCC
++  # toolchain (proton-clang's bundled assembler is not ARM32 and fails
++  # on -EL). Keep arm64 sources on clang; only the compat vDSO changes.
++  CC_ARM32 := $(CROSS_COMPILE_ARM32)gcc
+ else
+   CC_ARM32 := $(CROSS_COMPILE_ARM32)$(cc-name)
+ endif
+@@ -18,7 +17,7 @@ endif
+ cc32-option = $(call try-run,\
+         $(CC_ARM32) $(1) -c -x c /dev/null -o "$$TMP",$(1),$(2))
+ cc32-disable-warning = $(call try-run,\
+-	$(CC_ARM32) -W$(strip $(1)) -c -x c /dev/null -o "$$TMP",-Wno-$(strip $(1)))
++        $(CC_ARM32) -W$(strip $(1)) -c -x c /dev/null -o "$$TMP",-Wno-$(strip $(1)))
+ cc32-ldoption = $(call try-run,\
+         $(CC_ARM32) $(1) -nostdlib -x c /dev/null -o "$$TMP",$(1),$(2))
+ 
+@@ -32,9 +31,12 @@ cc32-ldoption = $(call try-run,\
+ # From top-level Makefile
+ # NOSTDINC_FLAGS
+ VDSO_CPPFLAGS := -nostdinc -isystem $(shell $(CC_ARM32) -print-file-name=include)
++# NetHunter whyred: the GCC>=5.1 gate guards an ARM64 codegen bug (gcc bug 63293);
++# the ARM32 vDSO built by gcc 4.9 is unaffected, so exempt it.
++VDSO_CPPFLAGS += -D__ARM32_VDSO_GCC__
+ VDSO_CPPFLAGS += $(LINUXINCLUDE)
+ VDSO_CPPFLAGS += -D__KERNEL__
+-VDSO_CPPFLAGS += $(call cc-option,-Qunused-arguments,)
++VDSO_CPPFLAGS += $(call cc32-option,-Qunused-arguments,)
+ VDSO_CPPFLAGS += $(ARCH_CPPFLAGS) $(KCPPFLAGS)
+ 
+ # Common C and assembly flags
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index bce8a8f5..0d245de2 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -145,7 +145,7 @@
+ 
+ #if GCC_VERSION < 30200
+ # error Sorry, your compiler is too old - please upgrade it.
+-#elif defined(CONFIG_ARM64) && GCC_VERSION < 50100 && !defined(__clang__)
++#elif defined(CONFIG_ARM64) && GCC_VERSION < 50100 && !defined(__clang__) && !defined(__ARM32_VDSO_GCC__)
+ /*
+  * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63293
+  * https://lore.kernel.org/r/20210107111841.GN1551@shell.armlinux.org.uk

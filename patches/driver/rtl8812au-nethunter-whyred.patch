@@ -1,0 +1,41 @@
+diff --git a/Makefile b/Makefile
+index 63ce43e..1a3acc8 100755
+--- a/Makefile
++++ b/Makefile
+@@ -19,6 +19,8 @@ EXTRA_CFLAGS += -Wno-unknown-pragmas
+ EXTRA_CFLAGS += -Wno-address
+ EXTRA_CFLAGS += -Wno-vla -g
+ 
++# NetHunter whyred: kernel backported 4.7+ cfg80211 symbols
++EXTRA_CFLAGS += -DCONFIG_KERNEL_HAS_NEW_BANDS
+ EXTRA_CFLAGS += -I$(src)/include -I$(srctree)/$(src)/include
+ EXTRA_CFLAGS += -I$(src)/hal/phydm -I$(srctree)/$(src)/hal/phydm
+ EXTRA_LDFLAGS += --strip-debug -O3
+diff --git a/os_dep/linux/ioctl_cfg80211.c b/os_dep/linux/ioctl_cfg80211.c
+index ec47e95..bfd0f39 100644
+--- a/os_dep/linux/ioctl_cfg80211.c
++++ b/os_dep/linux/ioctl_cfg80211.c
+@@ -1198,7 +1198,7 @@ check_bss:
+                         struct cfg80211_bss *bss;
+                         bss = cfg80211_get_bss(pwdev->wiphy, NULL, cur_network->network.MacAddress, NULL, 0,
+                                 IEEE80211_BSS_TYPE_ANY, IEEE80211_PRIVACY_ANY);
+-		#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0) || defined(CONFIG_CFG80211_CONNECT_BSS_ANDROID))
++		#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0) || defined(CONFIG_CFG80211_CONNECT_BSS_ANDROID) || defined(CONFIG_KERNEL_HAS_NEW_BANDS))
+                         cfg80211_connect_bss(wdev_to_ndev(pwdev), cur_network->network.MacAddress, bss
+                                 , pmlmepriv->assoc_req + sizeof(struct rtw_ieee80211_hdr_3addr) + 2
+                                 , pmlmepriv->assoc_req_len - sizeof(struct rtw_ieee80211_hdr_3addr) - 2
+diff --git a/os_dep/linux/ioctl_cfg80211.h b/os_dep/linux/ioctl_cfg80211.h
+index d40a36e..dbb2924 100644
+--- a/os_dep/linux/ioctl_cfg80211.h
++++ b/os_dep/linux/ioctl_cfg80211.h
+@@ -417,7 +417,9 @@ void rtw_cfg80211_cqm_rssi_update(_adapter *padapter, s32 rssi);
+ u8 rtw_cfg80211_ch_switch_notify(_adapter *adapter, u8 ch, u8 bw, u8 offset, u8 ht, bool started);
+ #endif
+ 
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)) && (LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0))
++#if defined(CONFIG_KERNEL_HAS_NEW_BANDS)
++/* NetHunter whyred: kernel backported 4.7+ cfg80211; native symbols used, skip compat */
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)) && (LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0))
+ #define NL80211_BAND_2GHZ IEEE80211_BAND_2GHZ
+ #define NL80211_BAND_5GHZ IEEE80211_BAND_5GHZ
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))

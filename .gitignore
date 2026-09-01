@@ -1,0 +1,10 @@
+# build artifacts and local clones
+kernel-src/
+proton-clang/
+toolchain-arm/
+rtl8812au/
+AnyKernel3/
+out/
+*.zip
+*.sha256
+*.ko
