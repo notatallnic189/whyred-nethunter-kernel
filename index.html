@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>whyred nethunter kernel - Kali NetHunter on the Redmi Note 5 Pro</title>
+<meta name="description" content="Custom kernel for the Xiaomi Redmi Note 5 Pro (whyred) on LineageOS 18.1: HID gadget, rtl8812au monitor mode and injection, built with CI.">
+<style>
+  body { font: 16px/1.65 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1f2328; background: #fff; max-width: 740px; margin: 0 auto; padding: 28px 20px 60px; }
+  h1, h2, h3 { line-height: 1.3; }
+  h1 { font-size: 26px; border-bottom: 1px solid #d8dee4; padding-bottom: 10px; margin-bottom: 4px; }
+  h2 { font-size: 20px; border-bottom: 1px solid #eaeef2; padding-bottom: 6px; margin-top: 34px; }
+  h3 { font-size: 16px; margin-top: 22px; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; }
+  code { background: #f6f8fa; padding: 1px 5px; border-radius: 4px; }
+  pre { background: #f6f8fa; padding: 12px 14px; border-radius: 6px; overflow-x: auto; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14.5px; }
+  th, td { border: 1px solid #d8dee4; padding: 6px 10px; text-align: left; }
+  th { background: #f6f8fa; }
+  a { color: #0969da; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .sub { color: #59636e; font-size: 14px; margin-bottom: 18px; }
+  .sub a { color: inherit; text-decoration: underline; }
+  ul { padding-left: 26px; }
+  li { margin: 4px 0; }
+  blockquote { border-left: 4px solid #d8dee4; margin: 14px 0; padding: 2px 16px; color: #59636e; }
+  footer { margin-top: 44px; border-top: 1px solid #eaeef2; padding-top: 14px; font-size: 13.5px; color: #59636e; }
+</style>
+</head>
+<body>
+<h1>whyred nethunter kernel</h1>
+<p class="sub">
+  A custom kernel for the Xiaomi Redmi Note 5 Pro, so the old thing can run
+  <a href="https://www.kali.org/docs/nethunter/">Kali NetHunter</a> properly.
+  Maintained by hand, built by robots. &nbsp;(<a href="https://github.com/notatallnic189/whyred-nethunter-kernel">source</a>)
+</p>
+
+<p>
+  This is a stock LineageOS sdm660 kernel with a short list of changes that NetHunter
+  needs and upstream does not ship. If you have a whyred on LineageOS 18.1 (or any
+  Android 11 ROM close enough to it), you flash this and the NetHunter HID attacks,
+  BadUSB gadget and external wifi monitoring work like on the officially supported
+  devices. Nothing more, nothing less. Current release is <strong>v1.0.0</strong>,
+  kernel version <strong>4.4.302</strong>, actively maintained as of September 2026.
+</p>
+
+<h2>Download</h2>
+<p>
+  Grab the AnyKernel3 zip from the
+  <a href="https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.0.0">v1.0.0 release page</a>.
+  Every zip is built by GitHub Actions straight from the sources in the repo, so what
+  you flash matches the commit you can read. No re-uploads, no "trust me" zips.
+</p>
+
+<h2>What is actually different from stock</h2>
+<table>
+  <tr><th>Config change</th><th>Why</th></tr>
+  <tr><td><code>CONFIG_USB_CONFIGFS_F_HID=y</code></td><td>HID gadget, needed for DuckHunter style keystroke injection over OTG</td></tr>
+  <tr><td><code>CONFIG_USB_CONFIGFS_F_FS=y</code></td><td>functionfs, plumbing for the NetHunter USB gadget</td></tr>
+  <tr><td><code>CONFIG_MODULES=y</code> + unload</td><td>out-of-tree modules like the rtl8812au driver can load</td></tr>
+  <tr><td><code>ANDROID_PARANOID_NETWORK</code> removed</td><td>chroot and proot tools can open sockets without AID_INET</td></tr>
+  <tr><td><code>CONFIG_LOCALVERSION="-Nethunter-whyred"</code></td><td><code>uname -a</code> tells you what you are running</td></tr>
+</table>
+<p>
+  Full list in the
+  <a href="https://github.com/notatallnic189/whyred-nethunter-kernel#readme">README on GitHub</a>.
+</p>
+
+<h2>External wifi: rtl8812au</h2>
+<p>
+  The repo also builds the aircrack-ng rtl8812au module, signed with the same key as
+  the kernel, so you get real monitor mode and packet injection from a cheap ALFA
+  adapter plugged in over OTG. The module zip ships next to the kernel zip on the
+  release page. Flash kernel first, then the module, then reboot once.
+</p>
+
+<h2>Install, short version</h2>
+<ol>
+  <li>Unlock your bootloader and install LineageOS 18.1 (there are a hundred guides, the XDA one below is fine)</li>
+  <li>Download the kernel zip (and the module zip if you have a 8812au adapter)</li>
+  <li>Reboot to recovery, flash the zips, reboot</li>
+  <li>Install the NetHunter app and chroot from the official Kali images as usual</li>
+</ol>
+<blockquote>
+  The long version with pictures, magisk notes and rollback steps lives in the
+  <a href="https://xdaforums.com/t/kernel-whyred-nethunter-kernel-for-los-18-1-hid-gadget-rtl8812au-injection-ci-built.4800231/">XDA thread</a>.
+  Questions go there too, or to the
+  <a href="https://t.me/whyrednethunter">Telegram channel</a>.
+</blockquote>
+
+<h2>Known limitations</h2>
+<ul>
+  <li>The internal WCN3980 wifi chip cannot do monitor mode. Firmware limitation, same on every whyred kernel ever built, so do not ask, use an external adapter.</li>
+  <li>Android 9 and 10 ROMs are not supported, the kernel expects the Android 11 userspace. GSI results vary and I do not test them.</li>
+  <li>VoLTE on some custom ROMs needs the ROM's own patches, unrelated to this kernel.</li>
+</ul>
+
+<h2>Why not the 2020 kernel</h2>
+<p>
+  The old Team-420 whyred kernel was built against Android 9 era sources and has not
+  been touched in years. This one is based on the LineageOS 18.1 sdm660 tree, builds
+  in CI on every release, and includes the module work the old one never had.
+  If you are on old ROMs, the old kernel is still a fine choice; if you moved to
+  Android 11, this is the maintained option.
+</p>
+
+<h2>Changelog</h2>
+<pre><code>v1.0.0  2026-08-31  initial public release
+                    - hid gadget and functionfs enabled
+                    - paranoid network removed
+                    - rtl8812au out-of-tree module, signed
+                    - CI builds (GitHub Actions), AnyKernel3 packaging
+                    - merged into kali-nethunter-kernels community devices</code></pre>
+
+<h2>Credits and license</h2>
+<p>
+  Built on the work of LineageOS and the sdm660 maintainers, theradcolor and
+  Team-420 (who proved NetHunter on whyred was possible back in 2020), osm0sis for
+  AnyKernel3, the aircrack-ng team for the rtl8812au driver, and the Kali NetHunter
+  crew. Repo tooling is MIT, kernel sources stay GPLv2 as they should be.
+</p>
+
+<footer>
+  Not affiliated with Xiaomi, Kali Linux or OffSec. Kernel source:
+  <a href="https://github.com/notatallnic189/whyred-nethunter-kernel">github.com/notatallnic189/whyred-nethunter-kernel</a>
+  &middot; support: <a href="https://xdaforums.com/t/kernel-whyred-nethunter-kernel-for-los-18-1-hid-gadget-rtl8812au-injection-ci-built.4800231/">XDA</a>
+  &middot; <a href="https://t.me/whyrednethunter">t.me/whyrednethunter</a>
+</footer>
+</body>
+</html>
