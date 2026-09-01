@@ -4,11 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths:
-      - 'patches/**'
-      - 'build.sh'
-      - 'packaging/**'
-      - '.github/workflows/**'
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
