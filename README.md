@@ -6,12 +6,16 @@
 [![Release](https://img.shields.io/github/v/release/notatallnic189/whyred-nethunter-kernel)](https://github.com/notatallnic189/whyred-nethunter-kernel/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 ![Device](https://img.shields.io/badge/device-Redmi%20Note%205%20Pro%20%28whyred%29-red)
+[![Telegram](https://img.shields.io/badge/Telegram-t.me%2Fwhyrednethunter-26A5E4?logo=telegram)](https://t.me/whyrednethunter)
+[![XDA](https://img.shields.io/badge/XDA-support%20thread-orange?logo=xdadevelopers)](https://xdaforums.com/t/kernel-whyred-nethunter-kernel-for-los-18-1-hid-gadget-rtl8812au-injection-ci-built.4800231/)
 
 Custom kernel for the **Xiaomi Redmi Note 5 Pro (whyred, SDM636)** that turns a
 LineageOS 18.1-class ROM into a Kali NetHunter capable platform. Built by
 GitHub Actions, shipped as a flashable AnyKernel3 zip, zero paid tools.
 
 **Latest release: [v1.0.0](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.0.0)**
+
+**Community:** [XDA support thread](https://xdaforums.com/t/kernel-whyred-nethunter-kernel-for-los-18-1-hid-gadget-rtl8812au-injection-ci-built.4800231/) | [Telegram channel t.me/whyrednethunter](https://t.me/whyrednethunter) (release announcements, flash help)
 
 Base: `LineageOS/android_kernel_xiaomi_sdm660` @ `lineage-18.1` (Linux 4.4.302)
 
