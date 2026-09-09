@@ -39,6 +39,15 @@ vermagic locked to this kernel) is bundled in the AnyKernel3 zip and installed
 systemlessly via an ak3-helper Magisk module. Supports RTL8812AU/8821AU/8814AU
 class adapters: monitor mode and packet injection via OTG.
 
+## WireGuard VPN built in
+
+`wireguard.ko` (wireguard-linux-compat) is compiled with the same proton-clang
+toolchain against this kernel tree, signed with the kernel build key and
+shipped in the zip next to `88XXau.ko`. Since the kernel enforces
+`CONFIG_MODULE_SIG_FORCE`, a signed in-zip module is the clean way to get
+WireGuard on 4.4 without touching the ROM. Bring your own config, run
+`wg-quick up` from the NetHunter userland, done.
+
 ## Why this instead of the 2020 Team-420 kernel
 
 Team-420 proved NetHunter on whyred was possible, full respect. This project
@@ -49,6 +58,7 @@ continues the idea with a modern, reproducible pipeline:
 | Builds | one off manual releases | every push on GitHub Actions, zips as artifacts |
 | Source | frozen | patches and config in the open, rebuildable anywhere |
 | Modules | unsigned, permissive expectations | signed with the kernel build key, `MODULE_SIG_FORCE` stays on |
+| VPN | not available | WireGuard module built in, signed, shipped in the zip |
 | LOS base | old trees | current `lineage-18.1` head, rebaseable |
 | Rollback | manual | AnyKernel3, just restore `boot` from your nandroid |
 
@@ -63,6 +73,8 @@ continues the idea with a modern, reproducible pipeline:
    - `ls /config/usb_gadget` present (HID gadget available)
    - `insmod /system/lib/modules/88XXau.ko` (or via NetHunter) then plug the
      adapter through OTG and check `airmon-ng` / `ip link`
+   - `insmod /system/lib/modules/wireguard.ko` then check
+     `ip link add dev wg0 type wireguard` (or just `wg-quick up` from NetHunter)
 
 Then install the NetHunter userland with the official Generic ARM64 installer
 from [kali.org/get-kali](https://www.kali.org/get-kali/#kali-mobile) and pair
@@ -107,6 +119,17 @@ needed.
   limitation), external adapter required for wireless attacks.
 - Kernel base is the LOS 18.1 (Android 11) era; do NOT flash this on 4.19-based
   ROMs (A13+/dynamic-partition builds).
+
+## Changelog
+
+**v1.1.0 (2026-09-09)**
+- New: signed WireGuard module (`wireguard.ko`, wireguard-linux-compat) bundled
+  in the AnyKernel3 zip and installed systemlessly next to `88XXau.ko`.
+
+**v1.0.0 (2026-09-01)**
+- Initial release: NetHunter defconfig (HID gadget, functionfs, user-helper
+  firmware loading, no paranoid networking), signed rtl8812au module,
+  AnyKernel3 packaging, CI builds on every push.
 
 ## Responsible use
 

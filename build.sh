@@ -2,7 +2,8 @@
 # whyred NetHunter kernel, full CI build (Path B)
 # Base: LineageOS android_kernel_xiaomi_sdm660 @ lineage-18.1
 # Adds: HID gadget, functionfs, FW_LOADER_USER_HELPER, no ANDROID_PARANOID_NETWORK,
-#       aircrack-ng RTL8812AU external-adapter module, AnyKernel3 packaging.
+#       aircrack-ng RTL8812AU external-adapter module, signed WireGuard VPN module,
+#       AnyKernel3 packaging.
 set -euo pipefail
 
 KERNEL_REPO="https://github.com/LineageOS/android_kernel_xiaomi_sdm660.git"
@@ -10,6 +11,7 @@ KERNEL_BRANCH="lineage-18.1"
 PROTON_REPO="https://github.com/kdrag0n/proton-clang.git"
 ARMTC_REPO="https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9.git"
 RTL_REPO="https://github.com/aircrack-ng/rtl8812au.git"
+WG_REPO="https://github.com/WireGuard/wireguard-linux-compat.git"
 AK3_REPO="https://github.com/osm0sis/AnyKernel3.git"
 DEFCONFIG="whyred-nethunter_defconfig"
 REL="$(date +%Y%m%d)"
@@ -24,8 +26,9 @@ git clone --depth=1 --single-branch --branch "$KERNEL_BRANCH" "$KERNEL_REPO" ker
 echo "[*] cloning toolchains"
 git clone --depth=1 "$PROTON_REPO" proton-clang
 git clone --depth=1 "$ARMTC_REPO" toolchain-arm
-echo "[*] cloning rtl8812au + AnyKernel3"
+echo "[*] cloning rtl8812au + wireguard + AnyKernel3"
 git clone --depth=1 "$RTL_REPO" rtl8812au
+git clone --depth=1 "$WG_REPO" wireguard-linux-compat
 git clone --depth=1 "$AK3_REPO" AnyKernel3
 
 echo "[*] applying patches"
@@ -69,10 +72,32 @@ kernel-src/out/scripts/sign-file sha512 \
 tail -c 4096 rtl8812au/88XXau.ko | grep -aq "Module signature appended" \
   || { echo "ERROR: module signature missing"; exit 1; }
 
+echo "[*] building WireGuard module (wireguard-linux-compat)"
+make -C kernel-src O=out -j"${JOBS}" ARCH=arm64 CC="$PROTON/bin/clang" \
+  CROSS_COMPILE="$PROTON/bin/aarch64-linux-gnu-" \
+  CROSS_COMPILE_ARM32="$ARMTC/bin/arm-linux-androideabi-" \
+  M="$(pwd)/wireguard-linux-compat/src" \
+  KCFLAGS="-Wno-error=unknown-warning-option -Wno-gnu-variable-sized-type-not-at-end" \
+  modules
+
+WGKO="$(find wireguard-linux-compat/src -name wireguard.ko -print -quit)"
+[ -n "$WGKO" ] || WGKO="$(find kernel-src/out -name wireguard.ko -print -quit)"
+if [ -z "$WGKO" ]; then echo "ERROR: wireguard.ko not produced"; exit 1; fi
+
+echo "[*] signing WireGuard module"
+# Same story as 88XXau: sign manually, CONFIG_MODULE_SIG_FORCE stays on.
+kernel-src/out/scripts/sign-file sha512 \
+  kernel-src/out/certs/signing_key.pem \
+  kernel-src/out/certs/signing_key.x509 \
+  "${WGKO}"
+tail -c 4096 "${WGKO}" | grep -aq "Module signature appended" \
+  || { echo "ERROR: module signature missing"; exit 1; }
+
 echo "[*] packaging AnyKernel3 zip"
 cp kernel-src/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/Image.gz-dtb
 mkdir -p AnyKernel3/modules/system/lib/modules
 cp rtl8812au/88XXau.ko AnyKernel3/modules/system/lib/modules/88XXau.ko
+cp "${WGKO}" AnyKernel3/modules/system/lib/modules/wireguard.ko
 cp packaging/anykernel.sh AnyKernel3/anykernel.sh
 rm -f AnyKernel3/placeholder
 cd AnyKernel3
