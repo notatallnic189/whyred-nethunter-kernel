@@ -128,6 +128,11 @@
   .see-also { margin: 0; padding: 0; list-style: none; }
   .see-also li { margin: 4px 0; }
 
+  /* faq: man-page FAQ(7) style */
+  dl.faq { margin: 0 0 14px; }
+  dl.faq dt { font-weight: 700; margin: 14px 0 2px; max-width: 72ch; }
+  dl.faq dd { margin: 0; max-width: 72ch; }
+
   footer {
     margin-top: 52px;
     border-top: 1px solid var(--line);
@@ -215,6 +220,55 @@ $ reboot</pre>
     HID gadget, functionfs, signed rtl8812au module, AnyKernel3 packaging,
     CI builds on every push.</li>
   </ul>
+
+  <h2>GUIDES</h2>
+  <ul class="see-also">
+    <li><a href="guide-install.html">guide-install(7): step by step from stock to NetHunter, with rollback</a></li>
+    <li><a href="guide-wifi.html">guide-wifi(7): rtl8812au monitor mode and packet injection over OTG</a></li>
+    <li><a href="guide-wireguard.html">guide-wireguard(7): WireGuard on whyred with the signed module</a></li>
+  </ul>
+
+  <h2>FAQ</h2>
+  <dl class="faq">
+    <dt>Does Kali NetHunter work on the Redmi Note 5 Pro?</dt>
+    <dd>Yes. That is exactly what this kernel is for: whyred on LineageOS 18.1
+    plus this kernel turns the phone into a NetHunter platform. The device is
+    listed in the official kali-nethunter-kernels device list.</dd>
+    <dt>Is MIUI supported?</dt>
+    <dd>No. The target is LineageOS 18.1 or an Android 11 ROM very close to
+    it. MIUI boot images and init differ, and nothing here is tested against
+    MIUI.</dd>
+    <dt>Do I need root?</dt>
+    <dd>Yes, Magisk. The extra modules ship inside the AnyKernel3 zip and are
+    installed systemlessly, so the ROM partition stays untouched.</dd>
+    <dt>Can the internal WiFi do monitor mode?</dt>
+    <dd>No. The WCN3980 firmware cannot, on every whyred kernel ever built.
+    Use an external adapter, see the next question.</dd>
+    <dt>Which WiFi adapter for monitor mode and injection?</dt>
+    <dd>Anything on the RTL8812AU / 8821AU / 8814AU chips, for example the
+    ALFA AWUS036ACH. The signed 88XXau module is in the zip. Expect to pay
+    about 15 euro plus a decent OTG cable.</dd>
+    <dt>Is WireGuard included?</dt>
+    <dd>Since v1.1.0: a signed wireguard.ko rides in the zip next to the WiFi
+    module. Bring a config, run <code>wg-quick up</code> from the NetHunter
+    userland. Details in guide-wireguard(7).</dd>
+    <dt>How do I verify the zip I downloaded?</dt>
+    <dd>Every release carries a .sha256 file. Compare before flashing, the CI
+    uploads both from the same run.</dd>
+    <dt>Will banking apps and Play Integrity still pass?</dt>
+    <dd>No root hiding is attempted here. Magisk denylist and its friends are
+    your own setup, outside the scope of this kernel.</dd>
+    <dt>Why kernel 4.4 and not something newer?</dt>
+    <dd>Because 4.4.302 is what the whyred LineageOS 18.1 base actually
+    ships. There is no newer mainline for SDM636; anyone claiming 5.x on
+    whyred is selling something.</dd>
+    <dt>Is it free?</dt>
+    <dd>GPLv2 for the kernel code, MIT for the build tooling, no ads, no
+    paywall, one maintainer.</dd>
+    <dt>Where do I report problems?</dt>
+    <dd>The XDA support thread, with <code>uname -a</code> and the last
+    logcat. Without those two, debugging is guessing.</dd>
+  </dl>
 
   <h2>SEE ALSO</h2>
   <ul class="see-also">

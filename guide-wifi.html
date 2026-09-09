@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>guide-wifi(7): rtl8812au monitor mode and injection on the whyred NetHunter kernel</title>
+<meta name="description" content="Monitor mode and packet injection on the Redmi Note 5 Pro (whyred) with the Kali NetHunter kernel: RTL8812AU adapters over OTG, signed 88XXau module, airodump-ng, injection test.">
+<link rel="canonical" href="https://notatallnic189.github.io/whyred-nethunter-kernel/guide-wifi.html">
+<style>
+  :root {
+    --ink: #1b1f24; --paper: #faf9f5; --line: #c9c4b8;
+    --faint: #6b665c; --link: #9d3b22; --accent: #a32a2a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font: 14px/1.7 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    margin: 0; padding: 32px 20px 56px;
+  }
+  .page { max-width: 880px; margin: 0 auto; }
+  .running {
+    display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px;
+    color: var(--faint); border-bottom: 1px solid var(--line);
+    padding-bottom: 8px; letter-spacing: 0.02em;
+  }
+  h1 { font-size: 21px; font-weight: 700; margin: 26px 0 4px; }
+  h1 .sec { color: var(--accent); font-weight: 400; }
+  .tagline { margin: 0 0 30px; color: var(--faint); }
+  h2 { font-size: 13px; letter-spacing: 0.12em; margin: 34px 0 10px; color: var(--ink); }
+  p { margin: 0 0 14px; max-width: 72ch; }
+  code { background: #efede6; padding: 1px 4px; font-size: 13px; }
+  pre {
+    background: #efede6; border-left: 3px solid var(--line);
+    padding: 10px 14px; overflow-x: auto; line-height: 1.55; margin: 0 0 16px;
+  }
+  a { color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
+  a:hover { color: var(--ink); }
+  ul.plain { margin: 0 0 14px; padding-left: 22px; }
+  ul.plain li { margin: 6px 0; max-width: 70ch; }
+  .see-also { margin: 0; padding: 0; list-style: none; }
+  .see-also li { margin: 4px 0; }
+  footer {
+    margin-top: 52px; border-top: 1px solid var(--line); padding-top: 10px;
+    display: flex; justify-content: space-between; gap: 12px;
+    font-size: 12px; color: var(--faint);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="running">
+  <span>guide-wifi(7)</span>
+  <span>whyred-nethunter-kernel Guides</span>
+  <span>guide-wifi(7)</span>
+</div>
+
+<h1>guide-wifi<span class="sec">(7)</span></h1>
+<p class="tagline">guide-wifi - rtl8812au monitor mode and packet injection over OTG, on a phone</p>
+
+<main>
+  <h2>DESCRIPTION</h2>
+  <p>This guide covers the WiFi half of NetHunter on the Redmi Note 5 Pro:
+  putting an external RTL8812AU-class adapter into monitor mode and verifying
+  packet injection, using the signed 88XXau module that ships inside the
+  AnyKernel3 zip. Ten minutes once the hardware is right. The classic use is
+  a pocket capture rig: phone, OTG cable, small adapter, done.</p>
+  <p>One thing to accept before spending money: the internal WCN3980 radio of
+  the whyred can never do monitor mode. That is a firmware limitation, true on
+  every kernel ever built for this device, not something a kernel update
+  fixes. External adapter or nothing.</p>
+
+  <h2>HARDWARE</h2>
+  <ul class="plain">
+    <li><strong>Adapter:</strong> anything on RTL8812AU, RTL8821AU or
+    RTL8814AU. The ALFA AWUS036ACH is the usual choice and the one the module
+    gets tested with. Same chipset family means same driver.</li>
+    <li><strong>OTG cable or hub:</strong> the adapter pulls real current on
+    both bands. A plain OTG cable works for capture, but for sustained
+    injection or an external antenna at high power, a powered OTG hub keeps
+    the phone from browning out.</li>
+    <li><strong>Power bank with pass-through</strong> is a good middle ground:
+    charges the phone while the adapter hangs off OTG.</li>
+  </ul>
+
+  <h2>SETUP</h2>
+  <p>With the kernel already flashed (guide-install(7)), plug the adapter into
+  OTG. The 88XXau module is signed and shipped in the zip, the loader picks it
+  up by modalias on plug. Confirm the interface exists:</p>
+  <pre>$ adb shell su -c ip link show
+...
+wlan1: ... link/ether 00:c0:ca:...</pre>
+  <p><code>wlan1</code> with an ALFA-prefix MAC is the adapter. If it does not
+  appear, load the module by hand and read the log:</p>
+  <pre>$ adb shell su -c insmod /system/lib/modules/88XXau.ko
+$ adb shell su -c dmesg | tail</pre>
+  <p>Module signature failures in <code>dmesg</code> mean the zip and the
+  kernel do not match: you flashed a module from a different build. Use the
+  zip from the same release as the running kernel, they are signed with the
+  same key on purpose.</p>
+
+  <h2>MONITOR MODE</h2>
+  <pre>$ adb shell su -c "ip link set wlan1 down"
+$ adb shell su -c "iw dev wlan1 set type monitor"
+$ adb shell su -c "ip link set wlan1 up"
+$ adb shell su -c "iw dev wlan1 info"</pre>
+  <p>The last line should report <code>type monitor</code>. From the Kali
+  chroot (or a terminal with the NetHunter userland), capture:</p>
+  <pre>$ sudo airodump-ng wlan1 -w /sdcard/cap</pre>
+  <p>Both bands work: 2.4 GHz and 5 GHz, which is the whole point of paying
+  for a dual band adapter.</p>
+
+  <h2>INJECTION TEST</h2>
+  <pre>$ sudo aireplay-ng -9 wlan1</pre>
+  <p>Read the line that matters: <code>Injection is working!</code> If it says
+  otherwise, in this order: try a powered hub (current dip looks exactly like
+  a failed test), try another USB port on the adapter side (cables again),
+  and check that no NetHunter-managed wifi connection is holding the
+  interface. Injection on networks you do not own is not a test, it is an
+  attack: test against your own AP.</p>
+
+  <h2>BACK TO MANAGED</h2>
+  <pre>$ adb shell su -c "ip link set wlan1 down"
+$ adb shell su -c "iw dev wlan1 set type managed"
+$ adb shell su -c "ip link set wlan1 up"</pre>
+  <p>Or just unplug the adapter. Nothing in the phone changes, the internal
+  wifi stays on the ROM side the whole time.</p>
+
+  <h2>BUGS</h2>
+  <ul class="plain">
+    <li>Country code defaults to the driver default, set yours with
+    <code>iw reg set</code> if channel 12/13 or DFS channels look missing.</li>
+    <li>The adapter sometimes enumerates as <code>wlan2</code> after a hot
+    unplug without down: rename or reboot, cheaper than debugging udev.</li>
+    <li>MT7612U / MT7921AU class adapters are a different driver and are NOT
+    in the zip. Chipset first, brand second.</li>
+  </ul>
+
+  <h2>SEE ALSO</h2>
+  <ul class="see-also">
+    <li><a href="index.html">whyred-nethunter-kernel(1): project overview and FAQ</a></li>
+    <li><a href="guide-install.html">guide-install(7): flash the kernel first</a></li>
+    <li><a href="guide-wireguard.html">guide-wireguard(7): the other signed module</a></li>
+    <li><a href="https://www.kali.org/docs/nethunter/">kali.org: official NetHunter docs</a></li>
+  </ul>
+</main>
+
+<footer>
+  <span>not affiliated with Xiaomi, Kali Linux or OffSec</span>
+  <span>guide-wifi, last touched September 2026</span>
+</footer>
+
+</div>
+</body>
+</html>
