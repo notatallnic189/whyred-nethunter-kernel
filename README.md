@@ -62,6 +62,26 @@ continues the idea with a modern, reproducible pipeline:
 | LOS base | old trees | current `lineage-18.1` head, rebaseable |
 | Rollback | manual | AnyKernel3, just restore `boot` from your nandroid |
 
+## Screenshots
+
+Listed upstream in the official Kali NetHunter kernels page
+(nethunter.kali.org/kernels.html):
+
+![whyred row on the official Kali NetHunter kernels page](docs/img/kali-whyred-row.png)
+
+Every zip is built on GitHub Actions and attached to the release with its
+sha256 file:
+
+| [release v1.1.0](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.1.0) | [CI runs](https://github.com/notatallnic189/whyred-nethunter-kernel/actions) |
+|---|---|
+| ![release v1.1.0 assets](docs/img/release-v110.png) | ![green CI runs](docs/img/ci-actions.png) |
+
+<!-- Device-side shots slot in here once captured from a real whyred:
+| NetHunter app | wg show | airodump-ng |
+|---|---|---|
+| ![NetHunter app](docs/img/nethunter-app.png) | ![wg show](docs/img/wg-show.png) | ![airodump-ng](docs/img/airodump-ng.png) |
+-->
+
 ## Flash it (LineageOS 18.1)
 
 1. Boot TWRP, take a full nandroid backup (boot + system + data).
