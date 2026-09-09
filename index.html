@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>whyred-nethunter-kernel(1): Kali NetHunter kernel for the Redmi Note 5 Pro</title>
-<meta name="description" content="Kali NetHunter kernel for the Xiaomi Redmi Note 5 Pro (whyred) on LineageOS 18.1. HID gadget, rtl8812au monitor mode and injection, CI-built AnyKernel3 zips.">
+<meta name="description" content="Kali NetHunter kernel for the Xiaomi Redmi Note 5 Pro (whyred) on LineageOS 18.1. HID gadget, rtl8812au monitor mode and injection, signed WireGuard module, CI-built AnyKernel3 zips.">
 <meta name="google-site-verification" content="YrW8NE6qCmNJmDPGpgSgtyhWd0SolOU65kIQKp-ESFU" />
 <style>
   :root {
@@ -160,19 +160,19 @@
   upstream does not ship: USB HID gadget, functionfs, loadable modules, no
   paranoid networking. You put it on a whyred running LineageOS 18.1 and the
   phone turns into a NetHunter platform: DuckHunter keystrokes over OTG, BadUSB,
-  monitor mode with an external adapter. That is the whole pitch.</p>
+  monitor mode with an external adapter, a signed WireGuard module in the zip.
+  That is the whole pitch.</p>
   <p>Built by GitHub Actions from the public repo, packaged as AnyKernel3 zips.
   Maintained by one person who actually owns the phone, not by a committee.
   In the official kali-nethunter-kernels device list since September 2026.</p>
 
   <h2>DOWNLOAD AND INSTALL</h2>
   <div class="actions">
-    <a class="btn" href="https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.0.0">Download v1.0.0 (AnyKernel3 zip)</a>
+    <a class="btn" href="https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.1.0">Download v1.1.0 (AnyKernel3 zip)</a>
     <a class="btn ghost" href="https://github.com/notatallnic189/whyred-nethunter-kernel">Browse source</a>
   </div>
   <pre>$ adb reboot recovery
-# flash whyred-nethunter-kernel-v1.0.0.zip
-# flash rtl8812au-module.zip        (only if you have the adapter)
+# flash whyred-nethunter-kernel-20260909.zip   (latest dated zip)
 $ reboot</pre>
   <p>Needs unlocked bootloader, LineageOS 18.1 or an Android 11 ROM close to it.
   The NetHunter app and chroot install afterwards from the official Kali images.
@@ -185,10 +185,15 @@ $ reboot</pre>
     <tr><td><code>CONFIG_MODULES=y</code>, unload enabled</td><td>rtl8812au module can load and unload</td></tr>
     <tr><td><code>ANDROID_PARANOID_NETWORK</code> removed</td><td>chroot tools get sockets without AID_INET</td></tr>
     <tr><td><code>LOCALVERSION=-Nethunter-whyred</code></td><td><code>uname -a</code> shows what you are running</td></tr>
+    <tr><td><code>wireguard.ko</code>, signed, new in v1.1.0</td><td>WireGuard VPN in the zip, <code>wg-quick</code> ready</td></tr>
   </table>
   <p>The rtl8812au module is built from the aircrack-ng tree and signed with the
   same key as the kernel. Monitor mode and injection work from a cheap ALFA on
-  OTG. Read the BUGS section before buying an adapter.</p>
+  OTG. Since v1.1.0 the zip also carries a signed WireGuard module from
+  wireguard-linux-compat, built with the same toolchain: the kernel enforces
+  module signature force, so both modules are signed the same way. Bring your
+  own config and <code>wg-quick up</code> works from the NetHunter userland.
+  Read the BUGS section before buying an adapter.</p>
 
   <h2>BUGS</h2>
   <ul class="plain">
@@ -199,6 +204,16 @@ $ reboot</pre>
     not tested here.</li>
     <li>Report breakage in the XDA thread with <code>uname -a</code> and the last
     logcat, or it did not happen.</li>
+  </ul>
+
+  <h2>CHANGELOG</h2>
+  <ul class="plain">
+    <li><strong>v1.1.0, 2026-09-09</strong>: signed WireGuard module
+    (wireguard-linux-compat) shipped in the AnyKernel3 zip next to the signed
+    88XXau.ko. Flash path unchanged from v1.0.0.</li>
+    <li><strong>v1.0.0, 2026-08-31</strong>: first release. NetHunter defconfig,
+    HID gadget, functionfs, signed rtl8812au module, AnyKernel3 packaging,
+    CI builds on every push.</li>
   </ul>
 
   <h2>SEE ALSO</h2>
@@ -218,7 +233,7 @@ $ reboot</pre>
     <tr><td class="k">soc</td><td>Snapdragon 636</td></tr>
     <tr><td class="k">kernel</td><td>Linux 4.4.302</td></tr>
     <tr><td class="k">base</td><td>LOS sdm660, 18.1</td></tr>
-    <tr><td class="k">version</td><td>v1.0.0, 2026-08-31</td></tr>
+    <tr><td class="k">version</td><td>v1.1.0, 2026-09-09</td></tr>
     <tr><td class="k">rom</td><td>Android 11 (LOS 18.1)</td></tr>
     <tr><td class="k">license</td><td>GPLv2, tooling MIT</td></tr>
   </table>
@@ -231,7 +246,7 @@ $ reboot</pre>
 
 <footer>
   <span>not affiliated with Xiaomi, Kali Linux or OffSec</span>
-  <span>v1.0.0, last touched September 2026</span>
+  <span>v1.1.0, last touched September 2026</span>
 </footer>
 
 </div>
