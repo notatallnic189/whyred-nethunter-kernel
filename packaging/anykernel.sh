@@ -13,19 +13,23 @@ do.cleanuponabort=0
 device.name1=whyred
 supported.versions=
 supported.patchlevels=
-'; }
+'; } # end properties
 
-## AnyKernel methods (DO NOT CHANGE)
-. tools/ak3-core.sh;
-
-## AnyKernel defaults
+## AnyKernel install
+# boot shell variables
+# NOTE: these MUST be assigned BEFORE sourcing tools/ak3-core.sh, because
+# ak3-core.sh runs setup_ak at source time and setup_ak reads $BLOCK.
+# Wrong order aborts with: Unable to determine partition. Aborting...
 BLOCK=/dev/block/bootdevice/by-name/boot;
 IS_SLOT_DEVICE=0;
 RAMDISK_COMPRESSION=auto;
 PATCH_VBMETA_FLAG=auto;
 
-## Install
+# import functions/variables and setup patching - see for reference (DO NOT REMOVE)
+. tools/ak3-core.sh;
+
+# boot install
 dump_boot;
 
 write_boot;
-# end install
+## end boot install
