@@ -13,7 +13,7 @@ Custom kernel for the **Xiaomi Redmi Note 5 Pro (whyred, SDM636)** that turns a
 LineageOS 18.1-class ROM into a Kali NetHunter capable platform. Built by
 GitHub Actions, shipped as a flashable AnyKernel3 zip, zero paid tools.
 
-**Latest release: [v1.1.1](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.1.1), verified end to end on a real device (see below)**
+**Latest release: [v1.2](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.2), installer that explains itself, clean version strings, leaner zip. v1.1.1 was verified end to end on a real device (see below)**
 
 **Community:** [XDA support thread](https://xdaforums.com/t/kernel-whyred-nethunter-kernel-for-los-18-1-hid-gadget-rtl8812au-injection-ci-built.4800231/) | [Telegram channel t.me/whyrednethunter](https://t.me/whyrednethunter) (release announcements, flash help) | [landing page](https://notatallnic189.github.io/whyred-nethunter-kernel/)
 
@@ -117,8 +117,9 @@ Device side proof shots live in the [Verified on real hardware](#verified-on-rea
 
 ## Flash it (LineageOS 18.1, verified flow)
 
-Download: [v1.1.1 zip](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/download/v1.1.1/whyred-nethunter-kernel-20260910.zip) +
-[sha256](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/download/v1.1.1/whyred-nethunter-kernel-20260910.zip.sha256).
+Download: [v1.2 zip](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/download/v1.2/whyred-nethunter-kernel-20260911.zip) +
+[sha256](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/download/v1.2/whyred-nethunter-kernel-20260911.zip.sha256).
+v1.2 sha256: `e384b892b8d851734345aabbff8ed580a0264c408361322998aa256098c1376e`.
 Always verify the hash before flashing.
 
 **Order A, kernel first (this is what the photos above show):**
@@ -134,8 +135,10 @@ Always verify the hash before flashing.
    patch that img in the Magisk app, `fastboot flash boot magisk_patched.img`.
 4. Reboot TWRP and flash the SAME zip again. Now you get
    `Magisk detected! ... Creating kernel helper systemless module...` and
-   `88XXau.ko` + `wireguard.ko` land in `/data/adb/modules/ak3-helper`
-   (systemless, your system partition stays untouched).
+   `88XXau.ko` lands in `/data/adb/modules/ak3-helper`
+   (systemless, your system partition stays untouched). Since v1.2 the
+   zip carries only `88XXau.ko`: WireGuard is built into the kernel and
+   the redundant module is skipped by the build.
 
 **Order B, root first (single flash):**
 
@@ -146,7 +149,7 @@ Always verify the hash before flashing.
 **Verify after boot:**
 
 - `adb shell uname -a` shows `4.4.302-Nethunter-whyred-...`
-- `su -c ls /data/adb/modules/ak3-helper/system/lib/modules` shows the two `.ko` files
+- `su -c ls /data/adb/modules/ak3-helper/system/lib/modules` shows `88XXau.ko` (the helper module; WireGuard is built-in since v1.2 builds skip the redundant `.ko`)
 - `su -c dmesg | grep wireguard` shows the built-in WireGuard loading
 - With an adapter plugged via OTG: `ip link` shows the new interface,
   monitor mode via `airmon-ng` from the NetHunter chroot
@@ -234,6 +237,19 @@ safe, verified procedure is in
   ROMs (A13+/dynamic-partition builds).
 
 ## Changelog
+
+**v1.2 (2026-09-11)**
+- Installer explains the module skip: when no Magisk/KernelSU is in the
+  boot image, it now prints that the modules will NOT be installed, that
+  this is expected kernel-first, and to root then reflash the same zip,
+  instead of AK3's bare `Skipped!`.
+- Clean version strings: the CI commits its overlay with fixed dates, so
+  the kernel reports `4.4.302-Nethunter-whyred-g964fc73178ae`
+  with no `-dirty` suffix (also fixed in the helper module version).
+- Leaner zip: `wireguard.ko` is not built nor packed when the kernel
+  already has WireGuard built-in (`CONFIG_WIREGUARD=y`); only the signed
+  `88XXau.ko` ships.
+- CI-validated on the tagged commit (zip sha256 `e384b892b8d8...`).
 
 **v1.1.1 (2026-09-10)**
 - Fix: `Unable to determine partition. Aborting...` on real hardware. BLOCK
