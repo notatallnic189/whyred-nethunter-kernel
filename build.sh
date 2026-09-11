@@ -35,6 +35,16 @@ echo "[*] applying patches"
 cd kernel-src
 cp ../patches/configs/${DEFCONFIG} arch/arm64/configs/${DEFCONFIG}
 git apply ../patches/kernel/kernel-vdso32-toolchain-fixes.patch
+# Commit the overlay so scripts/setlocalversion reports a clean tree
+# (an uncommitted overlay makes every build string end in -dirty).
+# Fixed author/committer dates keep the overlay commit hash stable
+# across CI runs for the same source state.
+git config user.name "nethunter-ci"
+git config user.email "nethunter-ci@users.noreply.github.com"
+git add -A
+GIT_COMMITTER_DATE="2026-01-01T00:00:00+0000" \
+GIT_AUTHOR_DATE="2026-01-01T00:00:00+0000" \
+  git commit -qm "NetHunter build overlay: NetHunter defconfig + kernel patches"
 cd ../rtl8812au
 git apply ../patches/driver/rtl8812au-nethunter-whyred.patch
 cd ..
@@ -72,32 +82,45 @@ kernel-src/out/scripts/sign-file sha512 \
 tail -c 4096 rtl8812au/88XXau.ko | grep -aq "Module signature appended" \
   || { echo "ERROR: module signature missing"; exit 1; }
 
-echo "[*] building WireGuard module (wireguard-linux-compat)"
-make -C kernel-src O=out -j"${JOBS}" ARCH=arm64 CC="$PROTON/bin/clang" \
-  CROSS_COMPILE="$PROTON/bin/aarch64-linux-gnu-" \
-  CROSS_COMPILE_ARM32="$ARMTC/bin/arm-linux-androideabi-" \
-  M="$(pwd)/wireguard-linux-compat/src" \
-  KCFLAGS="-Wno-error=unknown-warning-option -Wno-gnu-variable-sized-type-not-at-end" \
-  modules
+# WireGuard: the NetHunter defconfig sets CONFIG_WIREGUARD=y (built-in,
+# verified loading at boot on a real device). Building and shipping the
+# out-of-tree module on top of that is dead weight in the zip, so only
+# build it for trees that actually lack the built-in option.
+WG_BUILTIN=0
+grep -q '^CONFIG_WIREGUARD=y' kernel-src/out/.config && WG_BUILTIN=1
+WGKO=""
+if [ "$WG_BUILTIN" == 1 ]; then
+  echo "[*] CONFIG_WIREGUARD=y: WireGuard is built-in, skipping out-of-tree module"
+else
+  echo "[*] building WireGuard module (wireguard-linux-compat)"
+  make -C kernel-src O=out -j"${JOBS}" ARCH=arm64 CC="$PROTON/bin/clang" \
+    CROSS_COMPILE="$PROTON/bin/aarch64-linux-gnu-" \
+    CROSS_COMPILE_ARM32="$ARMTC/bin/arm-linux-androideabi-" \
+    M="$(pwd)/wireguard-linux-compat/src" \
+    KCFLAGS="-Wno-error=unknown-warning-option -Wno-gnu-variable-sized-type-not-at-end" \
+    modules
 
-WGKO="$(find wireguard-linux-compat/src -name wireguard.ko -print -quit)"
-[ -n "$WGKO" ] || WGKO="$(find kernel-src/out -name wireguard.ko -print -quit)"
-if [ -z "$WGKO" ]; then echo "ERROR: wireguard.ko not produced"; exit 1; fi
+  WGKO="$(find wireguard-linux-compat/src -name wireguard.ko -print -quit)"
+  [ -n "$WGKO" ] || WGKO="$(find kernel-src/out -name wireguard.ko -print -quit)"
+  if [ -z "$WGKO" ]; then echo "ERROR: wireguard.ko not produced"; exit 1; fi
 
-echo "[*] signing WireGuard module"
-# Same story as 88XXau: sign manually, CONFIG_MODULE_SIG_FORCE stays on.
-kernel-src/out/scripts/sign-file sha512 \
-  kernel-src/out/certs/signing_key.pem \
-  kernel-src/out/certs/signing_key.x509 \
-  "${WGKO}"
-tail -c 4096 "${WGKO}" | grep -aq "Module signature appended" \
-  || { echo "ERROR: module signature missing"; exit 1; }
+  echo "[*] signing WireGuard module"
+  # Same story as 88XXau: sign manually, CONFIG_MODULE_SIG_FORCE stays on.
+  kernel-src/out/scripts/sign-file sha512 \
+    kernel-src/out/certs/signing_key.pem \
+    kernel-src/out/certs/signing_key.x509 \
+    "${WGKO}"
+  tail -c 4096 "${WGKO}" | grep -aq "Module signature appended" \
+    || { echo "ERROR: module signature missing"; exit 1; }
+fi
 
 echo "[*] packaging AnyKernel3 zip"
 cp kernel-src/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/Image.gz-dtb
 mkdir -p AnyKernel3/modules/system/lib/modules
 cp rtl8812au/88XXau.ko AnyKernel3/modules/system/lib/modules/88XXau.ko
-cp "${WGKO}" AnyKernel3/modules/system/lib/modules/wireguard.ko
+if [ "$WG_BUILTIN" != 1 ]; then
+  cp "${WGKO}" AnyKernel3/modules/system/lib/modules/wireguard.ko
+fi
 cp packaging/anykernel.sh AnyKernel3/anykernel.sh
 rm -f AnyKernel3/placeholder
 cd AnyKernel3

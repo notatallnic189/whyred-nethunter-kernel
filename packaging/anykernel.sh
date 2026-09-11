@@ -32,4 +32,20 @@ PATCH_VBMETA_FLAG=auto;
 dump_boot;
 
 write_boot;
+
+## v1.2: explain the module skip instead of letting AK3 print a bare
+# "Magisk/KernelSU installation not found. Skipped!".
+# do_modules() runs right after this script; the ak3-helper systemless
+# module only installs when Magisk/KernelSU is in the boot image we came
+# from (ak3-core.sh touches $AKHOME/magisk_patched / kernelsu_patched
+# during processing when that is the case).
+if [ "$(file_getprop $AKHOME/anykernel.sh do.modules)" == 1 ] && \
+   [ ! -f $AKHOME/magisk_patched ] && [ ! -f $AKHOME/kernelsu_patched ]; then
+  ui_print " ";
+  ui_print "! NetHunter modules (88XXau, WireGuard) will NOT be installed:";
+  ui_print "! no Magisk/KernelSU detected in the boot image you came from.";
+  ui_print "! This is expected on a kernel-first order. Root with Magisk first,";
+  ui_print "! then reflash THIS SAME zip: the modules install systemless";
+  ui_print "! on the second pass. Kernel and boot are otherwise done.";
+fi;
 ## end boot install
