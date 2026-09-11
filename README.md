@@ -13,13 +13,38 @@ Custom kernel for the **Xiaomi Redmi Note 5 Pro (whyred, SDM636)** that turns a
 LineageOS 18.1-class ROM into a Kali NetHunter capable platform. Built by
 GitHub Actions, shipped as a flashable AnyKernel3 zip, zero paid tools.
 
-**Latest release: [v1.1.0](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.1.0), now with a signed WireGuard module in the zip**
+**Latest release: [v1.1.1](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.1.1), verified end to end on a real device (see below)**
 
 **Community:** [XDA support thread](https://xdaforums.com/t/kernel-whyred-nethunter-kernel-for-los-18-1-hid-gadget-rtl8812au-injection-ci-built.4800231/) | [Telegram channel t.me/whyrednethunter](https://t.me/whyrednethunter) (release announcements, flash help) | [landing page](https://notatallnic189.github.io/whyred-nethunter-kernel/)
 
 Base: `LineageOS/android_kernel_xiaomi_sdm660` @ `lineage-18.1` (Linux 4.4.302)
 
 Actively maintained as of September 2026. Project landing page: <https://notatallnic189.github.io/whyred-nethunter-kernel/>
+
+## Verified on real hardware
+
+The full chain below was executed on a physical whyred with the v1.1.1 zip
+(sha256 `4ecfa4152cb2c2ec57d2cb7a449cde1206f4a181ccec8735a76ac384a3915329`),
+not on an emulator and not on paper:
+
+- ROM: official LineageOS 18.1, build `lineage_whyred-userdebug 11 RQ3A.211001.001 0853d55ab8`
+- Kernel live: `4.4.302-Nethunter-whyred-g2e69f2ae550d-dirty`
+- TWRP flash: `Magisk detected! Patching kernel so reflashing Magisk is not necessary...` + `Creating kernel helper systemless module...`
+- Root: Magisk 30.7, `uid=0` with context `u:r:magisk:s0`, SELinux `Enforcing`
+- Systemless helper: `/data/adb/modules/ak3-helper` carries `88XXau.ko` + `wireguard.ko`
+- WireGuard: built into the kernel, `wireguard: WireGuard 1.0.20210606 loaded` shows in `dmesg` at boot
+
+| About phone | Model + Android 11 | Build number |
+|---|---|---|
+| ![About phone, device name](docs/img/device/01-about-phone-device-name.png) | ![Model Redmi Note 5, Android 11](docs/img/device/02-about-phone-model-android11.png) | ![lineage_whyred build number](docs/img/device/03-about-phone-build-number.png) |
+
+| TWRP install log | Magisk module | TWRP log (alt) |
+|---|---|---|
+| ![TWRP Magisk detected install log](docs/img/device/05-twrp-magisk-detected.png) | ![AK3 Helper Module in Magisk](docs/img/device/04-magisk-ak3-helper-module.png) | ![TWRP install successful alt shot](docs/img/device/06-twrp-install-success-alt.png) |
+
+Found a bug with this process? The v1.1.0 zip aborted on the first real flash
+(`Unable to determine partition`), it was fixed the same day and re-released
+as v1.1.1. The device that caught it is the device in the photos.
 
 ## What's in the kernel (vs stock LOS defconfig)
 
@@ -30,6 +55,7 @@ Actively maintained as of September 2026. Project landing page: <https://notatal
 | `CONFIG_FW_LOADER_USER_HELPER=y` | firmware loading for external WiFi adapters |
 | `# CONFIG_ANDROID_PARANOID_NETWORK` not set | chroot/proot tools can bind sockets without AID_INET |
 | `CONFIG_MODULES=y` + `CONFIG_MODULE_UNLOAD=y` | out-of-tree module support |
+| `CONFIG_WIREGUARD=y` | WireGuard VPN in-kernel, loads at boot (verified via dmesg) |
 | `CONFIG_LOCALVERSION="-Nethunter-whyred"` | identifiable via `uname -a` |
 
 ## External WiFi adapter: rtl8812au monitor mode + injection
@@ -39,14 +65,24 @@ vermagic locked to this kernel) is bundled in the AnyKernel3 zip and installed
 systemlessly via an ak3-helper Magisk module. Supports RTL8812AU/8821AU/8814AU
 class adapters: monitor mode and packet injection via OTG.
 
-## WireGuard VPN built in
+Honest status: the systemless install of the driver is verified on a real
+device (see the Magisk photo above), the monitor mode + injection test on an
+actual adapter is still pending because no RTL8812AU class adapter was on
+hand at release time. It is the only NetHunter feature not yet exercised
+end to end, everything else in this README was.
 
-`wireguard.ko` (wireguard-linux-compat) is compiled with the same proton-clang
-toolchain against this kernel tree, signed with the kernel build key and
-shipped in the zip next to `88XXau.ko`. Since the kernel enforces
-`CONFIG_MODULE_SIG_FORCE`, a signed in-zip module is the clean way to get
-WireGuard on 4.4 without touching the ROM. Bring your own config, run
-`wg-quick up` from the NetHunter userland, done.
+## WireGuard VPN built in (verified at boot)
+
+The defconfig sets `CONFIG_WIREGUARD=y`: WireGuard 1.0.20210606 is compiled
+into the kernel image and loads by itself at boot, before Android even
+finishes starting. Verified on device with `dmesg`. Bring your own config and
+run `wg-quick up` from the NetHunter chroot or point the Android WireGuard
+app at it. No module loading needed.
+
+The zip also carries a signed out-of-tree `wireguard.ko` next to `88XXau.ko`
+as a belt and suspenders fallback for ROM trees where the option is not set.
+Since the built-in one loads first, CI now skips packaging the redundant
+module when `CONFIG_WIREGUARD=y` is detected in the build config.
 
 ## Why this instead of the 2020 Team-420 kernel
 
@@ -58,8 +94,9 @@ continues the idea with a modern, reproducible pipeline:
 | Builds | one off manual releases | every push on GitHub Actions, zips as artifacts |
 | Source | frozen | patches and config in the open, rebuildable anywhere |
 | Modules | unsigned, permissive expectations | signed with the kernel build key, `MODULE_SIG_FORCE` stays on |
-| VPN | not available | WireGuard module built in, signed, shipped in the zip |
+| VPN | not available | WireGuard built into the kernel (verified), signed fallback module |
 | LOS base | old trees | current `lineage-18.1` head, rebaseable |
+| Proof | forum screenshots | end to end verification on real hardware, photos in this README |
 | Rollback | manual | AnyKernel3, just restore `boot` from your nandroid |
 
 ## Screenshots
@@ -72,33 +109,83 @@ Listed upstream in the official Kali NetHunter kernels page
 Every zip is built on GitHub Actions and attached to the release with its
 sha256 file:
 
-| [release v1.1.0](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.1.0) | [CI runs](https://github.com/notatallnic189/whyred-nethunter-kernel/actions) |
+| [releases](https://github.com/notatallnic189/whyred-nethunter-kernel/releases) | [CI runs](https://github.com/notatallnic189/whyred-nethunter-kernel/actions) |
 |---|---|
-| ![release v1.1.0 assets](docs/img/release-v110.png) | ![green CI runs](docs/img/ci-actions.png) |
+| ![release assets](docs/img/release-v110.png) | ![green CI runs](docs/img/ci-actions.png) |
 
-<!-- Device-side shots slot in here once captured from a real whyred:
-| NetHunter app | wg show | airodump-ng |
-|---|---|---|
-| ![NetHunter app](docs/img/nethunter-app.png) | ![wg show](docs/img/wg-show.png) | ![airodump-ng](docs/img/airodump-ng.png) |
--->
+Device side proof shots live in the [Verified on real hardware](#verified-on-real-hardware) section above.
 
-## Flash it (LineageOS 18.1)
+## Flash it (LineageOS 18.1, verified flow)
+
+Download: [v1.1.1 zip](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/download/v1.1.1/whyred-nethunter-kernel-20260910.zip) +
+[sha256](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/download/v1.1.1/whyred-nethunter-kernel-20260910.zip.sha256).
+Always verify the hash before flashing.
+
+**Order A, kernel first (this is what the photos above show):**
 
 1. Boot TWRP, take a full nandroid backup (boot + system + data).
-2. Flash the zip. It writes the kernel into `boot` and installs the module
-   helper through Magisk (systemless).
-3. **Reboot recovery and reflash Magisk** (any kernel flash can displace root).
-4. Boot and verify:
-   - `uname -a` → `4.4.302-Nethunter-whyred-...`
-   - `ls /config/usb_gadget` present (HID gadget available)
-   - `insmod /system/lib/modules/88XXau.ko` (or via NetHunter) then plug the
-     adapter through OTG and check `airmon-ng` / `ip link`
-   - `insmod /system/lib/modules/wireguard.ko` then check
-     `ip link add dev wg0 type wireguard` (or just `wg-quick up` from NetHunter)
+2. Flash the zip. The kernel is written and live after reboot, but the
+   modules are SKIPPED at this point: Magisk is not in the boot image yet,
+   and AnyKernel3 installs systemless modules only when it can see Magisk
+   or KernelSU. This is the famous `Skipped!`, see
+   [Troubleshooting](#troubleshooting).
+3. Boot to system, install the Magisk app, root the CURRENT boot image:
+   `dd if=/dev/block/bootdevice/by-name/boot of=/sdcard/nh-boot.img`,
+   patch that img in the Magisk app, `fastboot flash boot magisk_patched.img`.
+4. Reboot TWRP and flash the SAME zip again. Now you get
+   `Magisk detected! ... Creating kernel helper systemless module...` and
+   `88XXau.ko` + `wireguard.ko` land in `/data/adb/modules/ak3-helper`
+   (systemless, your system partition stays untouched).
 
-Then install the NetHunter userland with the official Generic ARM64 installer
-from [kali.org/get-kali](https://www.kali.org/get-kali/#kali-mobile) and pair
-it with this kernel.
+**Order B, root first (single flash):**
+
+1. Root the stock LOS boot with Magisk first (patch + flash boot).
+2. Flash the zip once: Magisk is detected, kernel written, modules
+   installed, all in the same pass. No reflash needed.
+
+**Verify after boot:**
+
+- `adb shell uname -a` shows `4.4.302-Nethunter-whyred-...`
+- `su -c ls /data/adb/modules/ak3-helper/system/lib/modules` shows the two `.ko` files
+- `su -c dmesg | grep wireguard` shows the built-in WireGuard loading
+- With an adapter plugged via OTG: `ip link` shows the new interface,
+  monitor mode via `airmon-ng` from the NetHunter chroot
+
+Magisk users do NOT need to reflash Magisk after this kernel: AnyKernel3
+detects the Magisk ramdisk and patches the kernel so root survives the flash
+(this exact message is in the TWRP photo above).
+
+Then install the NetHunter app + Kali chroot on top of this kernel with the
+dedicated guide: [docs/nethunter-app-chroot-guide.md](docs/nethunter-app-chroot-guide.md).
+
+## Troubleshooting
+
+**`Magisk/KernelSU installation not found. Skipped!` and the modules are missing**
+
+Expected behavior, not a bug, and it hits almost everyone because the most
+common order is ROM, then kernel, then Magisk. AnyKernel3 installs the
+systemless helper only when Magisk or KernelSU is present in the boot image
+at flash time. Kernel first, root later means the modules were skipped once.
+Fix: flash the same zip again now that Magisk is in. Nothing else to redo,
+your kernel and root are untouched by the second pass. From v1.2 the
+installer prints an explicit warning explaining this instead of a bare
+`Skipped!`.
+
+**Why does `uname -a` show `-dirty` at the end?**
+
+The v1.1.x CI applies the NetHunter defconfig and patches on top of the
+LineageOS tree without committing them, and `scripts/setlocalversion` marks
+that state with `-dirty`. It is expected and harmless: it actually proves
+you are running the CI overlay build and not the stock LOS kernel. Clean
+version strings (overlay committed during build with a stable hash) land in
+the next build on main.
+
+**How do I confirm I am really on this kernel?**
+
+Fastest three checks: `uname -a` (full kernel string), the AK3 Helper Module
+entry in the Magisk app (shows the same string, see photo above), and
+`cat /proc/version`. If `uname` does not start with
+`4.4.302-Nethunter-whyred` you are still on another kernel.
 
 ## Rollback
 
@@ -110,7 +197,9 @@ the kernel changes.
 
 GitHub Actions builds every push: grab the zip from the Actions artifacts or
 from the Releases page. Prefer local? Run `./build.sh` on any x86_64 Linux box
-with git, zip and the usual build tools installed.
+with git, zip and the usual build tools installed. The build commits the
+NetHunter overlay with a fixed date, so version strings come out clean and
+reproducible.
 
 ## FAQ
 
@@ -124,23 +213,34 @@ It targets LOS 18.1-class ROMs with the 4.4 kernel. 4.19 based A13/A14 ROMs
 need a different kernel tree, do NOT flash this on those.
 
 **Is root required?**
-Yes, Magisk. Reflash Magisk right after any kernel flash.
+Yes, Magisk (or KernelSU). Root is what carries the systemless modules. With
+Magisk already in, flashing this kernel does not displace it.
 
 **DuckHunter supported?**
 Yes. The HID gadget exposes `/dev/hidg0` for keystroke injection.
 
-**NetHunter app?**
-Use the official Generic ARM64 installer from kali.org. No 2020 era ROM zips
-needed.
+**NetHunter app and chroot on a custom kernel?**
+Yes, and you must NOT flash any NetHunter zip that contains a kernel. The
+safe, verified procedure is in
+[docs/nethunter-app-chroot-guide.md](docs/nethunter-app-chroot-guide.md).
 
 ## Known limitations (whyred hardware)
 
 - Internal WCN3980 WiFi cannot do monitor mode or injection (driver/firmware
   limitation), external adapter required for wireless attacks.
+- Monitor mode + injection on a real external adapter not yet exercised end
+  to end (driver installed and verified systemless, adapter test pending).
 - Kernel base is the LOS 18.1 (Android 11) era; do NOT flash this on 4.19-based
   ROMs (A13+/dynamic-partition builds).
 
 ## Changelog
+
+**v1.1.1 (2026-09-10)**
+- Fix: `Unable to determine partition. Aborting...` on real hardware. BLOCK
+  was assigned after `tools/ak3-core.sh` was sourced, so `setup_ak` ran
+  before the boot device was known. Found by the first real flash, fixed
+  same day (`0a37c4481fb4`), verified end to end on device (see the
+  Verified section).
 
 **v1.1.0 (2026-09-09)**
 - New: signed WireGuard module (`wireguard.ko`, wireguard-linux-compat) bundled
