@@ -3,7 +3,8 @@
 This guide is for anyone running whyred (Redmi Note 5 Pro) on LineageOS 18.1
 with a custom kernel, this one or any other, who wants the Kali NetHunter
 userland: the app, the Kali chroot, KeX, HID attack tools. Verified on a
-real whyred running this kernel (see the README Verified section).
+real whyred running this kernel, with photos below and in the README
+Verified section.
 
 ## The one rule that protects your kernel
 
@@ -33,6 +34,11 @@ Check before you flash anything:
 4. The app needs root for the chroot step: be rooted with Magisk before
    doing this (on this kernel, see the README Flash section).
 
+The end state looks like this, minimal chroot installed and the manager
+reporting `Running!`:
+
+![Kali Chroot Manager with the kali-arm64 chroot running](img/device/09-kali-chroot-manager-running.png)
+
 ## What works on top of this kernel
 
 - Kali chroot + terminal: everything userspace, works on any kernel.
@@ -49,12 +55,42 @@ Check before you flash anything:
 ## Sanity checks after setup
 
 - `uname -a` still shows your custom kernel string
-  (`4.4.302-Nethunter-whyred-...` for this kernel). If it changed, you
-  flashed something that contained a kernel.
-- In the NetHunter app the chroot status is "installed" and the chroot
-  terminal opens with a Kali prompt.
+  (`4.4.302-Nethunter-whyred-g964fc73178ae` for this kernel since v1.2).
+  If it changed, you flashed something that contained a kernel. The
+  NetHunter app shows the same string on its System information page:
+
+![NetHunter app system information with the custom kernel string](img/device/08-nethunter-app-system-info.png)
+
+- In the NetHunter app the Kali Chroot Manager reports `Running!` for
+  `/data/local/nhsystem/kali-arm64`.
+- The chroot terminal (NetHunter Terminal, Kali session) opens with a
+  `root@kali` prompt, `uid=0` and Kali Rolling:
+
+![root@kali terminal with id, uname -r and PRETTY_NAME](img/device/10-kali-terminal-root-uname.png)
+
 - `su -c ls /data/adb/modules/ak3-helper/system/lib/modules` still lists
-  `88XXau.ko` and `wireguard.ko`.
+  `88XXau.ko` (zips up to v1.1.1 also listed `wireguard.ko`; since v1.2
+  WireGuard is built in and the redundant module is skipped).
+
+## Troubleshooting (from the real verification run)
+
+**The NetHunter Store says "Not installed" right after you tap Install**
+
+This happened during the verification of this exact procedure. logcat
+showed the cause: `CONNECTION_FAILED: Unable to resolve host
+"store.nethunter.com"`. The Store app is a Kali maintained F-Droid fork
+with an old client (2019.3b was running here), so a transient DNS hiccup
+on the phone is enough to fail the download silently. Nothing is broken
+and nothing needs cleaning: confirm the browser can still open
+store.nethunter.com, toggle WiFi or mobile data if in doubt, and tap
+Install again. The very next attempt downloaded and installed the NetHunter
+app and the NetHunter Terminal app without touching anything else.
+
+**The chroot step fails with a root error**
+
+The Chroot Manager needs root to create `/data/local/nhsystem/kali-arm64`
+and bind the mounts. Grant the Magisk superuser prompt to the NetHunter
+app, then retry from the Chroot Manager.
 
 ## Why this page exists
 

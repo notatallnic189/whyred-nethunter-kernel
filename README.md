@@ -13,7 +13,7 @@ Custom kernel for the **Xiaomi Redmi Note 5 Pro (whyred, SDM636)** that turns a
 LineageOS 18.1-class ROM into a Kali NetHunter capable platform. Built by
 GitHub Actions, shipped as a flashable AnyKernel3 zip, zero paid tools.
 
-**Latest release: [v1.2](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.2), installer that explains itself, clean version strings, leaner zip. v1.1.1 was verified end to end on a real device (see below)**
+**Latest release: [v1.2](https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.2), installer that explains itself, clean version strings, leaner zip. Verified end to end on a real device twice: kernel, NetHunter app and Kali chroot (see below)**
 
 **Community:** [XDA support thread](https://xdaforums.com/t/kernel-whyred-nethunter-kernel-for-los-18-1-hid-gadget-rtl8812au-injection-ci-built.4800231/) | [Telegram channel t.me/whyrednethunter](https://t.me/whyrednethunter) (release announcements, flash help) | [landing page](https://notatallnic189.github.io/whyred-nethunter-kernel/)
 
@@ -23,16 +23,43 @@ Actively maintained as of September 2026. Project landing page: <https://notatal
 
 ## Verified on real hardware
 
-The full chain below was executed on a physical whyred with the v1.1.1 zip
-(sha256 `4ecfa4152cb2c2ec57d2cb7a449cde1206f4a181ccec8735a76ac384a3915329`),
-not on an emulator and not on paper:
+Two full verification passes were executed on a physical whyred, both off
+official release zips, not on an emulator and not on paper:
+
+- Pass 1 (2026-09-11), v1.1.1 zip (sha256
+  `4ecfa4152cb2c2ec57d2cb7a449cde1206f4a181ccec8735a76ac384a3915329`):
+  flash, root, systemless modules, WireGuard loaded, live string
+  `4.4.302-Nethunter-whyred-g2e69f2ae550d-dirty` (the `-dirty` suffix was
+  expected on v1.1.x builds).
+- Pass 2 (2026-09-12), v1.2 zip (sha256
+  `e384b892b8d851734345aabbff8ed580a0264c408361322998aa256098c1376e`):
+  same chain with the fixed installer and, on top of it, the full NetHunter
+  userland: app + Kali chroot + terminal, all live on the device.
+
+Common to both passes:
 
 - ROM: official LineageOS 18.1, build `lineage_whyred-userdebug 11 RQ3A.211001.001 0853d55ab8`
-- Kernel live: `4.4.302-Nethunter-whyred-g2e69f2ae550d-dirty`
 - TWRP flash: `Magisk detected! Patching kernel so reflashing Magisk is not necessary...` + `Creating kernel helper systemless module...`
 - Root: Magisk 30.7, `uid=0` with context `u:r:magisk:s0`, SELinux `Enforcing`
-- Systemless helper: `/data/adb/modules/ak3-helper` carries `88XXau.ko` + `wireguard.ko`
+- Systemless helper: `/data/adb/modules/ak3-helper` carries the signed `88XXau.ko` (v1.2 zips ship only this module, WireGuard is built in)
 - WireGuard: built into the kernel, `wireguard: WireGuard 1.0.20210606 loaded` shows in `dmesg` at boot
+
+Pass 2 adds the userland proof:
+
+- Kernel live: `4.4.302-Nethunter-whyred-g964fc73178ae`, no `-dirty`, read
+  straight from the NetHunter app
+- NetHunter app: Root Status `30.7:MAGISKSU`, NetHunter Terminal detected
+- Kali chroot: `/data/local/nhsystem/kali-arm64` installed and `Running!`
+- Chroot terminal: `root@kali` prompt, `uid=0`, `uname -r` = the clean
+  string above, `PRETTY_NAME="Kali GNU/Linux Rolling"`
+
+| TWRP flash v1.2 zip | Kernel string in the app | Chroot Manager |
+|---|---|---|
+| ![TWRP flash of the v1.2 zip, Magisk detected](docs/img/device/07-twrp-v12-flash.png) | ![NetHunter app system info with the clean v1.2 kernel string](docs/img/device/08-nethunter-app-system-info.png) | ![Kali Chroot Manager running](docs/img/device/09-kali-chroot-manager-running.png) |
+
+| Kali chroot terminal: root, uname, Rolling |
+|---|
+| ![root@kali terminal with id, uname -r and PRETTY_NAME](docs/img/device/10-kali-terminal-root-uname.png) |
 
 | About phone | Model + Android 11 | Build number |
 |---|---|---|
@@ -79,10 +106,11 @@ finishes starting. Verified on device with `dmesg`. Bring your own config and
 run `wg-quick up` from the NetHunter chroot or point the Android WireGuard
 app at it. No module loading needed.
 
-The zip also carries a signed out-of-tree `wireguard.ko` next to `88XXau.ko`
-as a belt and suspenders fallback for ROM trees where the option is not set.
-Since the built-in one loads first, CI now skips packaging the redundant
-module when `CONFIG_WIREGUARD=y` is detected in the build config.
+The v1.0.0 to v1.1.1 zips also carried a signed out-of-tree `wireguard.ko` next
+to `88XXau.ko` as a belt and suspenders fallback for ROM trees where the option is
+not set. Since the built-in one loads first, starting from v1.2 CI skips packaging
+the redundant module when `CONFIG_WIREGUARD=y` is detected in the build config,
+so v1.2+ zips ship only `88XXau.ko`.
 
 ## Why this instead of the 2020 Team-420 kernel
 
@@ -150,6 +178,7 @@ Always verify the hash before flashing.
 
 - `adb shell uname -a` shows `4.4.302-Nethunter-whyred-...`
 - `su -c ls /data/adb/modules/ak3-helper/system/lib/modules` shows `88XXau.ko` (the helper module; WireGuard is built-in since v1.2 builds skip the redundant `.ko`)
+- NetHunter app > Chroot Manager shows `Running!` for `/data/local/nhsystem/kali-arm64` (photo in the Verified section)
 - `su -c dmesg | grep wireguard` shows the built-in WireGuard loading
 - With an adapter plugged via OTG: `ip link` shows the new interface,
   monitor mode via `airmon-ng` from the NetHunter chroot
@@ -176,12 +205,14 @@ installer prints an explicit warning explaining this instead of a bare
 
 **Why does `uname -a` show `-dirty` at the end?**
 
-The v1.1.x CI applies the NetHunter defconfig and patches on top of the
-LineageOS tree without committing them, and `scripts/setlocalversion` marks
-that state with `-dirty`. It is expected and harmless: it actually proves
-you are running the CI overlay build and not the stock LOS kernel. Clean
-version strings (overlay committed during build with a stable hash) land in
-the next build on main.
+From v1.0.0 to v1.1.1 the CI applied the NetHunter defconfig and patches
+on top of the LineageOS tree without committing them, and
+`scripts/setlocalversion` marked that state with `-dirty`. It was expected
+and harmless: it actually proved you were running the CI overlay build and
+not the stock LOS kernel. Since v1.2 the CI commits the overlay during the
+build with a fixed date, so the version string comes out clean and
+reproducible: `4.4.302-Nethunter-whyred-g964fc73178ae`, no `-dirty`
+(verified on device, see the Verified section).
 
 **How do I confirm I am really on this kernel?**
 
@@ -250,6 +281,7 @@ safe, verified procedure is in
   already has WireGuard built-in (`CONFIG_WIREGUARD=y`); only the signed
   `88XXau.ko` ships.
 - CI-validated on the tagged commit (zip sha256 `e384b892b8d8...`).
+- Verified on the device: flashed with Magisk present, clean string confirmed by `uname` and by the NetHunter app, NetHunter app + Kali chroot installed and running (photos in the Verified section).
 
 **v1.1.1 (2026-09-10)**
 - Fix: `Unable to determine partition. Aborting...` on real hardware. BLOCK
