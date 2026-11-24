@@ -3,6 +3,7 @@ kernel-src/
 proton-clang/
 toolchain-arm/
 rtl8812au/
+wireguard-linux-compat/
 AnyKernel3/
 out/
 *.zip
