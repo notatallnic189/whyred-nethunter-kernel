@@ -73,8 +73,12 @@
   <h2>HARDWARE</h2>
   <ul class="plain">
     <li><strong>Adapter:</strong> anything on RTL8812AU, RTL8821AU or
-    RTL8814AU. The ALFA AWUS036ACH is the usual choice and the one the module
-    gets tested with. Same chipset family means same driver.</li>
+    RTL8814AU. The ALFA AWUS036ACH is the usual choice. Same chipset family
+    means same driver. Fair warning: the driver install is verified on the
+    device, the full monitor mode + injection pass on a real adapter is
+    still on the to-do list (no adapter was on hand at release time), so
+    this guide is the plan for when one arrives, written from the driver
+    docs and the aircrack-ng instructions.</li>
     <li><strong>OTG cable or hub:</strong> the adapter pulls real current on
     both bands. A plain OTG cable works for capture, but for sustained
     injection or an external antenna at high power, a powered OTG hub keeps
@@ -84,15 +88,20 @@
   </ul>
 
   <h2>SETUP</h2>
-  <p>With the kernel already flashed (guide-install(7)), plug the adapter into
-  OTG. The 88XXau module is signed and shipped in the zip, the loader picks it
-  up by modalias on plug. Confirm the interface exists:</p>
+  <p>With the kernel already flashed and the second pass done
+  (guide-install(7)), the signed <code>88XXau.ko</code> sits in the
+  systemless helper module:
+  <code>/data/adb/modules/ak3-helper/system/lib/modules/88XXau.ko</code>
+  (the Magisk overlay also mirrors it at
+  <code>/system/lib/modules/</code>). Plug the adapter into OTG and see
+  whether the interface shows up:</p>
   <pre>$ adb shell su -c ip link show
 ...
 wlan1: ... link/ether 00:c0:ca:...</pre>
-  <p><code>wlan1</code> with an ALFA-prefix MAC is the adapter. If it does not
-  appear, load the module by hand and read the log:</p>
-  <pre>$ adb shell su -c insmod /system/lib/modules/88XXau.ko
+  <p><code>wlan1</code> next to the internal <code>wlan0</code> is the
+  adapter. If it does not appear, load the module by hand and read the
+  log:</p>
+  <pre>$ adb shell su -c insmod /data/adb/modules/ak3-helper/system/lib/modules/88XXau.ko
 $ adb shell su -c dmesg | tail</pre>
   <p>Module signature failures in <code>dmesg</code> mean the zip and the
   kernel do not match: you flashed a module from a different build. Use the
@@ -107,8 +116,8 @@ $ adb shell su -c "iw dev wlan1 info"</pre>
   <p>The last line should report <code>type monitor</code>. From the Kali
   chroot (or a terminal with the NetHunter userland), capture:</p>
   <pre>$ sudo airodump-ng wlan1 -w /sdcard/cap</pre>
-  <p>Both bands work: 2.4 GHz and 5 GHz, which is the whole point of paying
-  for a dual band adapter.</p>
+  <p>Both bands should be reachable, 2.4 GHz and 5 GHz, which is the whole
+  point of paying for a dual band adapter.</p>
 
   <h2>INJECTION TEST</h2>
   <pre>$ sudo aireplay-ng -9 wlan1</pre>
@@ -147,7 +156,7 @@ $ adb shell su -c "ip link set wlan1 up"</pre>
 
 <footer>
   <span>not affiliated with Xiaomi, Kali Linux or OffSec</span>
-  <span>guide-wifi, last touched September 2026</span>
+  <span>guide-wifi, last touched November 2026</span>
 </footer>
 
 </div>

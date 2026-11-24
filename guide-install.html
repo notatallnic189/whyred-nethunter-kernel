@@ -82,7 +82,7 @@
     cable.</li>
     <li>Battery above 50 percent. The phone will reboot several times.</li>
     <li>The latest AnyKernel3 zip and its <code>.sha256</code> from the
-    <a href="https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.1.0">v1.1.0 release page</a>.</li>
+    <a href="https://github.com/notatallnic189/whyred-nethunter-kernel/releases/latest">releases page</a>.</li>
     <li>Optionally: a microSD or USB OTG drive, so the zips live on external
     storage and survive a wipe.</li>
   </ul>
@@ -107,13 +107,22 @@
     <li><strong>Flash the kernel zip.</strong> Boot to recovery
     (<code>adb reboot recovery</code> or power plus volume keys), choose
     Install, pick the AnyKernel3 zip you verified with the sha256 file, and
-    let it finish. The install log on screen should mention the boot image
-    patch and the ak3-helper module.</li>
-    <li><strong>Reboot back to recovery and reflash Magisk.</strong> AnyKernel3
-    rewrites the boot image, which can evict a previously patched Magisk boot.
-    The safe order is: kernel zip, reboot to recovery, flash Magisk again,
-    reboot to system. Skip the Magisk reflash and root will look broken, even
-    though the kernel is fine.</li>
+    let it finish. Watch the log: with no Magisk in the boot image yet, the
+    installer says plainly that the modules will NOT be installed this pass
+    and that this is expected (kernel-first order). Kernel and boot are done
+    anyway.</li>
+    <li><strong>Root the current boot with Magisk.</strong> Boot to system,
+    install the Magisk app, and patch the boot image you are now running:
+    <code>dd if=/dev/block/bootdevice/by-name/boot of=/sdcard/nh-boot.img</code>,
+    patch that img in the app, then
+    <code>fastboot flash boot magisk_patched.img</code>.</li>
+    <li><strong>Flash the SAME kernel zip again.</strong> Back in TWRP, the
+    second pass sees Magisk, writes the kernel again and installs the
+    systemless module helper (<code>88XXau.ko</code> lands in
+    <code>/data/adb/modules/ak3-helper</code>, the system partition stays
+    untouched). Root order reversed? If Magisk was already in before the
+    kernel, one flash is enough: AnyKernel3 detects it and patches the
+    kernel so root survives.</li>
     <li><strong>Install the NetHunter app and the Kali chroot.</strong> Grab
     the official installer from the
     <a href="https://www.kali.org/get-k/">kali.org NetHunter download page</a>,
@@ -123,11 +132,14 @@
 
   <h2>VERIFY</h2>
   <pre>$ adb shell uname -a
-Linux localhost 4.4.302-Nethunter-whyred #1 SMP ... aarch64</pre>
+Linux localhost 4.4.302-Nethunter-whyred-g964fc73178ae #1 SMP ... aarch64</pre>
   <p>The <code>-Nethunter-whyred</code> suffix is the fingerprint of the right
-  kernel. In the NetHunter app, the home screen should stop complaining about
-  a generic kernel. If you own a WiFi adapter, plug it into OTG and check that
-  <code>88XXau</code> loads; guide-wifi(7) covers that part end to end.</p>
+  kernel, and since v1.2 the string is clean, no <code>-dirty</code> at the
+  end. In the NetHunter app, the home screen should stop complaining about
+  a generic kernel. The module helper shows up in the Magisk app as
+  <code>ak3-helper</code>. If you own a WiFi adapter, plug it into OTG and
+  check that <code>88XXau</code> loads; guide-wifi(7) covers that part end
+  to end.</p>
 
   <h2>ROLLBACK</h2>
   <p>Two clean ways back. Fastest: restore the TWRP backup of
@@ -141,8 +153,8 @@ Linux localhost 4.4.302-Nethunter-whyred #1 SMP ... aarch64</pre>
   <ul class="plain">
     <li>Recovery replaced by the ROM after an OTA? Expected, reflash the
     recovery, then the kernel zip again.</li>
-    <li>Random reboots right after flashing usually mean the Magisk reflash
-    step was skipped, not a bad kernel.</li>
+    <li>Random reboots right after flashing usually mean the Magisk step was
+    skipped or the second flash never happened, not a bad kernel.</li>
     <li>Anything else: report in the
     <a href="https://xdaforums.com/t/kernel-whyred-nethunter-kernel-for-los-18-1-hid-gadget-rtl8812au-injection-ci-built.4800231/">XDA support thread</a>
     with <code>uname -a</code> and the last logcat.</li>
@@ -159,7 +171,7 @@ Linux localhost 4.4.302-Nethunter-whyred #1 SMP ... aarch64</pre>
 
 <footer>
   <span>not affiliated with Xiaomi, Kali Linux or OffSec</span>
-  <span>guide-install, last touched September 2026</span>
+  <span>guide-install, last touched November 2026</span>
 </footer>
 
 </div>

@@ -4,8 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>whyred-nethunter-kernel(1): Kali NetHunter kernel for the Redmi Note 5 Pro</title>
-<meta name="description" content="Kali NetHunter kernel for the Xiaomi Redmi Note 5 Pro (whyred) on LineageOS 18.1. HID gadget, rtl8812au monitor mode and injection, signed WireGuard module, CI-built AnyKernel3 zips.">
+<meta name="description" content="Kali NetHunter kernel for the Xiaomi Redmi Note 5 Pro (whyred) on LineageOS 18.1. HID gadget, rtl8812au monitor mode and injection with a signed driver module, WireGuard built in, CI-built AnyKernel3 zips.">
 <meta name="google-site-verification" content="YrW8NE6qCmNJmDPGpgSgtyhWd0SolOU65kIQKp-ESFU" />
+<meta property="og:type" content="website">
+<meta property="og:title" content="whyred-nethunter-kernel: Kali NetHunter kernel for the Redmi Note 5 Pro">
+<meta property="og:description" content="Turns a whyred on LineageOS 18.1 into a NetHunter platform: HID gadget, signed rtl8812au monitor-mode module, WireGuard built in, flashable AnyKernel3 zips from GitHub Actions.">
+<meta property="og:url" content="https://notatallnic189.github.io/whyred-nethunter-kernel/">
+<meta property="og:image" content="https://notatallnic189.github.io/whyred-nethunter-kernel/docs/banner.png">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   :root {
     --ink: #1b1f24;
@@ -165,7 +171,7 @@
   upstream does not ship: USB HID gadget, functionfs, loadable modules, no
   paranoid networking. You put it on a whyred running LineageOS 18.1 and the
   phone turns into a NetHunter platform: DuckHunter keystrokes over OTG, BadUSB,
-  monitor mode with an external adapter, a signed WireGuard module in the zip.
+  monitor mode with an external adapter, WireGuard built into the kernel image.
   That is the whole pitch.</p>
   <p>Built by GitHub Actions from the public repo, packaged as AnyKernel3 zips.
   Maintained by one person who actually owns the phone, not by a committee.
@@ -173,11 +179,11 @@
 
   <h2>DOWNLOAD AND INSTALL</h2>
   <div class="actions">
-    <a class="btn" href="https://github.com/notatallnic189/whyred-nethunter-kernel/releases/tag/v1.1.0">Download v1.1.0 (AnyKernel3 zip)</a>
+    <a class="btn" href="https://github.com/notatallnic189/whyred-nethunter-kernel/releases/latest">Download the latest zip (AnyKernel3)</a>
     <a class="btn ghost" href="https://github.com/notatallnic189/whyred-nethunter-kernel">Browse source</a>
   </div>
   <pre>$ adb reboot recovery
-# flash whyred-nethunter-kernel-20260909.zip   (latest dated zip)
+# flash whyred-nethunter-kernel-20260911.zip   (v1.2, latest dated zip)
 $ reboot</pre>
   <p>Needs unlocked bootloader, LineageOS 18.1 or an Android 11 ROM close to it.
   The NetHunter app and chroot install afterwards from the official Kali images.
@@ -190,15 +196,14 @@ $ reboot</pre>
     <tr><td><code>CONFIG_MODULES=y</code>, unload enabled</td><td>rtl8812au module can load and unload</td></tr>
     <tr><td><code>ANDROID_PARANOID_NETWORK</code> removed</td><td>chroot tools get sockets without AID_INET</td></tr>
     <tr><td><code>LOCALVERSION=-Nethunter-whyred</code></td><td><code>uname -a</code> shows what you are running</td></tr>
-    <tr><td><code>wireguard.ko</code>, signed, new in v1.1.0</td><td>WireGuard VPN in the zip, <code>wg-quick</code> ready</td></tr>
+    <tr><td><code>CONFIG_WIREGUARD=y</code></td><td>WireGuard compiled into the kernel, loads at boot</td></tr>
   </table>
   <p>The rtl8812au module is built from the aircrack-ng tree and signed with the
-  same key as the kernel. Monitor mode and injection work from a cheap ALFA on
-  OTG. Since v1.1.0 the zip also carries a signed WireGuard module from
-  wireguard-linux-compat, built with the same toolchain: the kernel enforces
-  module signature force, so both modules are signed the same way. Bring your
-  own config and <code>wg-quick up</code> works from the NetHunter userland.
-  Read the BUGS section before buying an adapter.</p>
+  same key as the kernel: signature enforcement stays on, so the module in the
+  zip is the only one the kernel will accept. Driver install is verified on a
+  real device; the monitor mode + injection test on an actual adapter is still
+  pending, no adapter was on hand at release time. Everything else on this page
+  was exercised end to end. Read the BUGS section before buying an adapter.</p>
 
   <h2>BUGS</h2>
   <ul class="plain">
@@ -213,6 +218,15 @@ $ reboot</pre>
 
   <h2>CHANGELOG</h2>
   <ul class="plain">
+    <li><strong>v1.2, 2026-09-11</strong>: installer explains the module skip
+    instead of a bare <code>Skipped!</code>, clean version strings (overlay
+    committed with fixed dates, no more <code>-dirty</code>), WireGuard built
+    into the kernel so the redundant module left the zip. Verified end to end
+    on the device: app, chroot, terminal.</li>
+    <li><strong>v1.1.1, 2026-09-10</strong>: fixed the installer abort on real
+    hardware (<code>Unable to determine partition</code>): BLOCK must be
+    assigned before ak3-core.sh runs. Found by the first real flash, fixed the
+    same day.</li>
     <li><strong>v1.1.0, 2026-09-09</strong>: signed WireGuard module
     (wireguard-linux-compat) shipped in the AnyKernel3 zip next to the signed
     88XXau.ko. Flash path unchanged from v1.0.0.</li>
@@ -249,9 +263,11 @@ $ reboot</pre>
     ALFA AWUS036ACH. The signed 88XXau module is in the zip. Expect to pay
     about 15 euro plus a decent OTG cable.</dd>
     <dt>Is WireGuard included?</dt>
-    <dd>Since v1.1.0: a signed wireguard.ko rides in the zip next to the WiFi
-    module. Bring a config, run <code>wg-quick up</code> from the NetHunter
-    userland. Details in guide-wireguard(7).</dd>
+    <dd>Built into the kernel since v1.2 (<code>CONFIG_WIREGUARD=y</code>,
+    loads at boot, verified via dmesg). The v1.1.x zips carried a signed
+    <code>wireguard.ko</code> instead. Bring a config, run
+    <code>wg-quick up</code> from the NetHunter userland. Details in
+    guide-wireguard(7).</dd>
     <dt>How do I verify the zip I downloaded?</dt>
     <dd>Every release carries a .sha256 file. Compare before flashing, the CI
     uploads both from the same run.</dd>
@@ -287,7 +303,7 @@ $ reboot</pre>
     <tr><td class="k">soc</td><td>Snapdragon 636</td></tr>
     <tr><td class="k">kernel</td><td>Linux 4.4.302</td></tr>
     <tr><td class="k">base</td><td>LOS sdm660, 18.1</td></tr>
-    <tr><td class="k">version</td><td>v1.1.0, 2026-09-09</td></tr>
+    <tr><td class="k">version</td><td>v1.2, 2026-09-11</td></tr>
     <tr><td class="k">rom</td><td>Android 11 (LOS 18.1)</td></tr>
     <tr><td class="k">license</td><td>GPLv2, tooling MIT</td></tr>
   </table>
@@ -300,7 +316,7 @@ $ reboot</pre>
 
 <footer>
   <span>not affiliated with Xiaomi, Kali Linux or OffSec</span>
-  <span>v1.1.0, last touched September 2026</span>
+  <span>v1.2, last touched November 2026</span>
 </footer>
 
 </div>

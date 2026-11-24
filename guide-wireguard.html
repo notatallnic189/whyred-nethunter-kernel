@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>guide-wireguard(7): WireGuard on the whyred NetHunter kernel with the signed module</title>
-<meta name="description" content="WireGuard VPN on the Redmi Note 5 Pro (whyred) with the Kali NetHunter kernel: signed wireguard.ko module, wg-quick from the Kali chroot, config example and handshake verification.">
+<title>guide-wireguard(7): WireGuard on the whyred NetHunter kernel</title>
+<meta name="description" content="WireGuard VPN on the Redmi Note 5 Pro (whyred) with the Kali NetHunter kernel: built into the kernel since v1.2, wg-quick from the Kali chroot, config example and handshake verification.">
 <link rel="canonical" href="https://notatallnic189.github.io/whyred-nethunter-kernel/guide-wireguard.html">
 <style>
   :root {
@@ -55,33 +55,35 @@
   <span>guide-wireguard(7)</span>
 </div>
 
-<h1>guide-wireguard<span class="sec">(7)</span></h1>
-<p class="tagline">guide-wireguard - WireGuard tunnels on a 4.4 whyred, without touching the ROM</p>
+  <h1>guide-wireguard<span class="sec">(7)</span></h1>
+  <p class="tagline">guide-wireguard - WireGuard tunnels on a 4.4 whyred, without touching the ROM</p>
 
 <main>
   <h2>DESCRIPTION</h2>
-  <p>Since v1.1.0 the AnyKernel3 zip carries a second signed module:
-  <code>wireguard.ko</code>, built from wireguard-linux-compat with the same
-  proton-clang toolchain as the kernel and signed with the same key. This
-  matters because the kernel enforces <code>CONFIG_MODULE_SIG_FORCE</code>:
-  an unsigned WireGuard module simply refuses to load, and the ROM-side
-  userspace implementations (slow transports, userspace tunnels) are the
-  workaround people used before. With the signed module you get the real
-  kernel dataplane: <code>wg-quick</code> and the WireGuard app are just
-  clients on top.</p>
+  <p>Since v1.2, WireGuard is compiled straight into the kernel image
+  (<code>CONFIG_WIREGUARD=y</code>): it is there at boot, before Android
+  finishes starting, no module to load. Check it once and you never think
+  about it again:</p>
+  <pre>$ adb shell su -c "dmesg | grep -i wireguard"
+wireguard: WireGuard 1.0.20210606 loaded. See www.wireguard.com</pre>
+  <p>History, for those on older zips: v1.0.0 to v1.1.1 shipped a signed
+  out-of-tree <code>wireguard.ko</code> built from wireguard-linux-compat
+  instead, because not every ROM tree has the option. Since the built-in one
+  loads first, the extra module was dead weight, and v1.2 dropped it from the
+  zip. Either way, the kernel dataplane is the real one:
+  <code>wg-quick</code> and the Android WireGuard app are just clients on
+  top.</p>
 
   <h2>SETUP</h2>
-  <p>After flashing the v1.1.0 zip (guide-install(7)), check the module is
-  present and loadable:</p>
-  <pre>$ adb shell su -c insmod /system/lib/modules/wireguard.ko
-$ adb shell su -c dmesg | grep -i wireguard</pre>
-  <p>No signature complaint in the log means the key matched. Prove the
-  interface type exists:</p>
+  <p>Nothing to load on v1.2: the dmesg line above is the whole setup. On a
+  v1.1.x zip the module needs a manual load first
+  (<code>insmod /data/adb/modules/ak3-helper/system/lib/modules/wireguard.ko</code>).
+  Then prove the interface type exists on whatever kernel you run:</p>
   <pre>$ adb shell su -c "ip link add dev wg0 type wireguard"
 $ adb shell su -c "ip link del wg0"</pre>
   <p>If this fails with <code>Operation not permitted</code> even under
-  <code>su</code>, the running kernel is older than v1.1.0. Check
-  <code>uname -a</code> first, flash the right zip second.</p>
+  <code>su</code>, the running kernel predates v1.1.0. Check
+  <code>uname -a</code> first, flash a current zip second.</p>
 
   <h2>CONFIG</h2>
   <p>Bring a config from wherever tunnels normally come from: your own
@@ -129,14 +131,15 @@ interface: wg0
     <li>Deep sleep can pause keepalives on aggressive battery savers. Exclude
     the chroot or the WireGuard app from battery optimization if the
     handshake goes quiet.</li>
-    <li>The module is built against this exact kernel tree, vermagic locked.
-    A module from another whyred kernel will not load, by design.</li>
+    <li>On v1.1.x zips the module is built against that exact kernel tree,
+    vermagic locked: a module from another whyred kernel will not load, by
+    design. On v1.2 the point is moot, it is inside the image.</li>
   </ul>
 
   <h2>SEE ALSO</h2>
   <ul class="see-also">
     <li><a href="index.html">whyred-nethunter-kernel(1): project overview and FAQ</a></li>
-    <li><a href="guide-install.html">guide-install(7): flash the v1.1.0 zip first</a></li>
+    <li><a href="guide-install.html">guide-install(7): flash the latest zip first</a></li>
     <li><a href="guide-wifi.html">guide-wifi(7): monitor mode with the other signed module</a></li>
     <li><a href="https://www.wireguard.com/quickstart/">wireguard.com: quick start, key generation</a></li>
   </ul>
@@ -144,7 +147,7 @@ interface: wg0
 
 <footer>
   <span>not affiliated with Xiaomi, Kali Linux or OffSec</span>
-  <span>guide-wireguard, last touched September 2026</span>
+  <span>guide-wireguard, last touched November 2026</span>
 </footer>
 
 </div>

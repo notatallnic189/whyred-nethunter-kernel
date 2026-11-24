@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://notatallnic189.github.io/whyred-nethunter-kernel/</loc>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://notatallnic189.github.io/whyred-nethunter-kernel/guide-install.html</loc>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://notatallnic189.github.io/whyred-nethunter-kernel/guide-wifi.html</loc>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://notatallnic189.github.io/whyred-nethunter-kernel/guide-wireguard.html</loc>
+    <changefreq>monthly</changefreq>
+  </url>
+</urlset>
