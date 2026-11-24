@@ -23,8 +23,8 @@ Actively maintained as of November 2026. Project landing page: <https://notatall
 
 ## Verified on real hardware
 
-Two full verification passes were executed on a physical whyred, both off
-official release zips, not on an emulator and not on paper:
+Two full verification passes on a physical whyred, both flashed from the
+official release zips, not from a local build and not on paper:
 
 - Pass 1 (2026-09-11), v1.1.1 zip (sha256
   `4ecfa4152cb2c2ec57d2cb7a449cde1206f4a181ccec8735a76ac384a3915329`):
@@ -85,10 +85,10 @@ as v1.1.1. The device that caught it is the device in the photos.
 | `CONFIG_WIREGUARD=y` | WireGuard VPN in-kernel, loads at boot (verified via dmesg) |
 | `CONFIG_LOCALVERSION="-Nethunter-whyred"` | identifiable via `uname -a` |
 
-## Kernel trade-offs, in the open
+## Kernel trade-offs
 
-The same honesty as above, applied to the config itself. These are
-deliberate choices, not oversights:
+Some of the config below weakens things on purpose. Better to say which
+ones and why than to let a reviewer discover them one by one:
 
 - `CFG80211_CERTIFICATION_ONUS` and `CFG80211_INTERNAL_REGDB` are on:
   the kernel stops deferring to the CRDA regulatory database for channel
@@ -110,8 +110,7 @@ deliberate choices, not oversights:
   friends) come from the LOS base defconfig and were left untouched.
 
 None of this is hidden: it is all readable on the device by anyone who
-knows where to look. Listing it here is cheaper than every reader
-rediscovering it.
+knows where to look.
 
 ## External WiFi adapter: rtl8812au monitor mode + injection
 
@@ -120,13 +119,13 @@ vermagic locked to this kernel) is bundled in the AnyKernel3 zip and installed
 systemlessly via an ak3-helper Magisk module. Supports RTL8812AU/8821AU/8814AU
 class adapters: monitor mode and packet injection via OTG.
 
-Honest status: the systemless install of the driver is verified on a real
-device (see the Magisk photo above), the monitor mode + injection test on an
-actual adapter is still pending because no RTL8812AU class adapter was on
-hand at release time. It is the only NetHunter feature not yet exercised
-end to end, everything else in this README was.
+Where this stands: the systemless install of the driver is verified on a real
+device (the Magisk photo above). The monitor mode + injection test on an
+actual adapter is still pending, because no RTL8812AU-class adapter was on
+hand at release time. That is the one NetHunter feature not yet exercised
+end to end; everything else in this README was.
 
-## WireGuard VPN built in (verified at boot)
+## WireGuard VPN, built in
 
 The defconfig sets `CONFIG_WIREGUARD=y`: WireGuard 1.0.20210606 is compiled
 into the kernel image and loads by itself at boot, before Android even
