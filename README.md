@@ -150,7 +150,7 @@ continues the idea with a modern, pinned pipeline:
 | Source | frozen | patches and config in the open, rebuildable anywhere |
 | Modules | unsigned, permissive expectations | signed with the kernel build key, `MODULE_SIG_FORCE` stays on |
 | VPN | not available | WireGuard built into the kernel (verified), signed fallback module |
-| LOS base | old trees | current `lineage-18.1` head, rebaseable |
+| LOS base | old trees | `lineage-18.1` at a pinned commit, rebaseable |
 | Proof | forum screenshots | end to end verification on real hardware, photos in this README |
 | Rollback | manual | AnyKernel3, just restore `boot` from your nandroid |
 
