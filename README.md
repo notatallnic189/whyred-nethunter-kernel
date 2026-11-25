@@ -19,12 +19,12 @@ GitHub Actions, shipped as a flashable AnyKernel3 zip, zero paid tools.
 
 Base: `LineageOS/android_kernel_xiaomi_sdm660` @ `lineage-18.1` (Linux 4.4.302)
 
-Actively maintained as of September 2026. Project landing page: <https://notatallnic189.github.io/whyred-nethunter-kernel/>
+Actively maintained as of November 2026. Project landing page: <https://notatallnic189.github.io/whyred-nethunter-kernel/>
 
 ## Verified on real hardware
 
-Two full verification passes were executed on a physical whyred, both off
-official release zips, not on an emulator and not on paper:
+Two full verification passes on a physical whyred, both flashed from the
+official release zips, not from a local build and not on paper:
 
 - Pass 1 (2026-09-11), v1.1.1 zip (sha256
   `4ecfa4152cb2c2ec57d2cb7a449cde1206f4a181ccec8735a76ac384a3915329`):
@@ -85,6 +85,33 @@ as v1.1.1. The device that caught it is the device in the photos.
 | `CONFIG_WIREGUARD=y` | WireGuard VPN in-kernel, loads at boot (verified via dmesg) |
 | `CONFIG_LOCALVERSION="-Nethunter-whyred"` | identifiable via `uname -a` |
 
+## Kernel trade-offs
+
+Some of the config below weakens things on purpose. Better to say which
+ones and why than to let a reviewer discover them one by one:
+
+- `CFG80211_CERTIFICATION_ONUS` and `CFG80211_INTERNAL_REGDB` are on:
+  the kernel stops deferring to the CRDA regulatory database for channel
+  availability. Monitor mode on an external adapter is the point of this
+  kernel, and it does not work when the radio is locked to the "world"
+  domain. The cost is that the radio can be tuned to channels your region
+  does not allow: lab use, your responsibility.
+- `ANDROID_PARANOID_NETWORK` is off: chroot tools get sockets without
+  AID_INET group binding. That weakens a stock-Android sandbox boundary,
+  and it is exactly what NetHunter needs.
+- `IKCONFIG_PROC` stays on, so `zcat /proc/config.gz` on the phone shows
+  the running config: too useful while tinkering to drop, at the cost of
+  a small information surface. `KALLSYMS_ALL` is inherited from the LOS
+  base and stays for the same reason.
+- `FW_LOADER_USER_HELPER` is on (the deprecated `..._FALLBACK` path was
+  dropped): user-helper firmware loading is how external WiFi firmware
+  gets loaded on this tree.
+- Inherited debug options (`MAGIC_SYSRQ`, `SCSI_LOGGING`, `MMC_TEST` and
+  friends) come from the LOS base defconfig and were left untouched.
+
+None of this is hidden: it is all readable on the device by anyone who
+knows where to look.
+
 ## External WiFi adapter: rtl8812au monitor mode + injection
 
 `88XXau.ko` (aircrack-ng rtl8812au v5.6.4.2, signed with the kernel build key,
@@ -92,13 +119,13 @@ vermagic locked to this kernel) is bundled in the AnyKernel3 zip and installed
 systemlessly via an ak3-helper Magisk module. Supports RTL8812AU/8821AU/8814AU
 class adapters: monitor mode and packet injection via OTG.
 
-Honest status: the systemless install of the driver is verified on a real
-device (see the Magisk photo above), the monitor mode + injection test on an
-actual adapter is still pending because no RTL8812AU class adapter was on
-hand at release time. It is the only NetHunter feature not yet exercised
-end to end, everything else in this README was.
+Where this stands: the systemless install of the driver is verified on a real
+device (the Magisk photo above). The monitor mode + injection test on an
+actual adapter is still pending, because no RTL8812AU-class adapter was on
+hand at release time. That is the one NetHunter feature not yet exercised
+end to end; everything else in this README was.
 
-## WireGuard VPN built in (verified at boot)
+## WireGuard VPN, built in
 
 The defconfig sets `CONFIG_WIREGUARD=y`: WireGuard 1.0.20210606 is compiled
 into the kernel image and loads by itself at boot, before Android even
@@ -115,7 +142,7 @@ so v1.2+ zips ship only `88XXau.ko`.
 ## Why this instead of the 2020 Team-420 kernel
 
 Team-420 proved NetHunter on whyred was possible, full respect. This project
-continues the idea with a modern, reproducible pipeline:
+continues the idea with a modern, pinned pipeline:
 
 | | Team-420 (2020) | this kernel |
 |---|---|---|
@@ -123,7 +150,7 @@ continues the idea with a modern, reproducible pipeline:
 | Source | frozen | patches and config in the open, rebuildable anywhere |
 | Modules | unsigned, permissive expectations | signed with the kernel build key, `MODULE_SIG_FORCE` stays on |
 | VPN | not available | WireGuard built into the kernel (verified), signed fallback module |
-| LOS base | old trees | current `lineage-18.1` head, rebaseable |
+| LOS base | old trees | `lineage-18.1` at a pinned commit, rebaseable |
 | Proof | forum screenshots | end to end verification on real hardware, photos in this README |
 | Rollback | manual | AnyKernel3, just restore `boot` from your nandroid |
 
@@ -231,9 +258,12 @@ the kernel changes.
 
 GitHub Actions builds every push: grab the zip from the Actions artifacts or
 from the Releases page. Prefer local? Run `./build.sh` on any x86_64 Linux box
-with git, zip and the usual build tools installed. The build commits the
-NetHunter overlay with a fixed date, so version strings come out clean and
-reproducible.
+with git, zip and the usual build tools installed. Every dependency the script
+pulls (kernel tree, both toolchains, driver, WireGuard, AnyKernel3) is pinned
+to an exact commit, so the same repo state always builds the same sources, and
+reruns reuse the local clones instead of re-downloading them. The overlay
+commit uses a fixed date, so version strings come out clean too. Found a
+security problem? [SECURITY.md](SECURITY.md) says where to report it.
 
 ## FAQ
 

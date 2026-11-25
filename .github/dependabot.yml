@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # The workflows pin every action to a full commit SHA on purpose
+  # (a repointed tag would run third-party code with a write token).
+  # Dependabot is the mechanism that keeps those pins moving forward
+  # one reviewable PR at a time.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

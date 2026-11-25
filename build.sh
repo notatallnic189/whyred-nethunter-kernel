@@ -7,12 +7,17 @@
 set -euo pipefail
 
 KERNEL_REPO="https://github.com/LineageOS/android_kernel_xiaomi_sdm660.git"
-KERNEL_BRANCH="lineage-18.1"
+KERNEL_REF="2e69f2ae550dcfbde1ffb6daa11492762b122191"   # lineage-18.1 head, 2026-11-24
 PROTON_REPO="https://github.com/kdrag0n/proton-clang.git"
+PROTON_REF="9fb011b183fe7e69b04b873ef6533b4b077e3c5e"   # master head, 2026-11-24
 ARMTC_REPO="https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9.git"
+ARMTC_REF="111258a10e017f067b27e6cfcea7619d753f3309"    # branch head, 2026-11-24
 RTL_REPO="https://github.com/aircrack-ng/rtl8812au.git"
+RTL_REF="734485506a30d6237c2deaad666a19f8ca5379f2"      # default branch head, 2026-11-24
 WG_REPO="https://github.com/WireGuard/wireguard-linux-compat.git"
+WG_REF="3d3c92b4711b42169137b2ddf42ed4382e2babdf"      # master head, 2026-11-24
 AK3_REPO="https://github.com/osm0sis/AnyKernel3.git"
+AK3_REF="41f04bdb4ee30a44e429c2c1131d5e8bb32b15f1"     # master head, 2026-11-24
 DEFCONFIG="whyred-nethunter_defconfig"
 REL="$(date +%Y%m%d)"
 OUT_ZIP="whyred-nethunter-kernel-${REL}.zip"
@@ -21,19 +26,42 @@ JOBS="$(nproc)"
 PROTON="${GITHUB_WORKSPACE:-$PWD}/proton-clang"
 ARMTC="${GITHUB_WORKSPACE:-$PWD}/toolchain-arm"
 
-echo "[*] cloning kernel source"
-git clone --depth=1 --single-branch --branch "$KERNEL_BRANCH" "$KERNEL_REPO" kernel-src
-echo "[*] cloning toolchains"
-git clone --depth=1 "$PROTON_REPO" proton-clang
-git clone --depth=1 "$ARMTC_REPO" toolchain-arm
-echo "[*] cloning rtl8812au + wireguard + AnyKernel3"
-git clone --depth=1 "$RTL_REPO" rtl8812au
-git clone --depth=1 "$WG_REPO" wireguard-linux-compat
-git clone --depth=1 "$AK3_REPO" AnyKernel3
+# clone_ref <repo> <sha> <dest>
+# Shallow-fetch exactly the pinned commit. If <dest> already exists (previous
+# run in the same workspace) it is force-checked out to the pin, so reruns
+# work and stale state (an old overlay commit, a patched module tree) is
+# discarded instead of leaking into the build.
+clone_ref() {
+  local repo="$1" sha="$2" dest="$3"
+  if [ ! -d "$dest/.git" ]; then
+    git init -q "$dest"
+    git -C "$dest" remote add origin "$repo"
+  fi
+  git -C "$dest" fetch -q --depth=1 origin "$sha"
+  git -C "$dest" checkout -f -q --detach FETCH_HEAD
+}
+
+# A failed build leaves ~10 GB of clones behind; on error they go away, on
+# success they stay so the next run can reuse them.
+cleanup() {
+  echo "[!] build failed, removing partial clones" >&2
+  rm -rf kernel-src proton-clang toolchain-arm rtl8812au wireguard-linux-compat AnyKernel3
+}
+trap cleanup ERR
+
+echo "[*] fetching kernel source @ $KERNEL_REF"
+clone_ref "$KERNEL_REPO" "$KERNEL_REF" kernel-src
+echo "[*] fetching toolchains"
+clone_ref "$PROTON_REPO" "$PROTON_REF" "$PROTON"
+clone_ref "$ARMTC_REPO" "$ARMTC_REF" "$ARMTC"
+echo "[*] fetching rtl8812au + wireguard + AnyKernel3"
+clone_ref "$RTL_REPO" "$RTL_REF" rtl8812au
+clone_ref "$WG_REPO" "$WG_REF" wireguard-linux-compat
+clone_ref "$AK3_REPO" "$AK3_REF" AnyKernel3
 
 echo "[*] applying patches"
 cd kernel-src
-cp ../patches/configs/${DEFCONFIG} arch/arm64/configs/${DEFCONFIG}
+cp "../patches/configs/${DEFCONFIG}" "arch/arm64/configs/${DEFCONFIG}"
 git apply ../patches/kernel/kernel-vdso32-toolchain-fixes.patch
 # Commit the overlay so scripts/setlocalversion reports a clean tree
 # (an uncommitted overlay makes every build string end in -dirty).
@@ -53,7 +81,7 @@ echo "[*] defconfig"
 make -C kernel-src O=out ARCH=arm64 CC="$PROTON/bin/clang" \
   CROSS_COMPILE="$PROTON/bin/aarch64-linux-gnu-" \
   CROSS_COMPILE_ARM32="$ARMTC/bin/arm-linux-androideabi-" \
-  ${DEFCONFIG}
+  "${DEFCONFIG}"
 
 echo "[*] building kernel Image.gz-dtb"
 make -C kernel-src O=out -j"${JOBS}" ARCH=arm64 CC="$PROTON/bin/clang" \
@@ -116,6 +144,9 @@ fi
 
 echo "[*] packaging AnyKernel3 zip"
 cp kernel-src/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/Image.gz-dtb
+# wipe modules from a previous packaging pass in a reused clone, so a
+# build that skips WireGuard never ships a stale wireguard.ko
+rm -rf AnyKernel3/modules
 mkdir -p AnyKernel3/modules/system/lib/modules
 cp rtl8812au/88XXau.ko AnyKernel3/modules/system/lib/modules/88XXau.ko
 if [ "$WG_BUILTIN" != 1 ]; then
